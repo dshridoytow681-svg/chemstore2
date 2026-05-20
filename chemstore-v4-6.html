@@ -102,9 +102,10 @@ function getTgConfig(){
     };
   }catch(e){return TG_DEFAULT;}
 }
+const GOOGLE_SCRIPT_URL="https://script.google.com/macros/s/AKfycbzFW6Q9Y2ZpXrUHHTlX6gL2WAeoiDvi49IiTHs2C8WV36aSRMaeZyg4BnjUhRZD_moO/exec";
 async function sendTelegramAlert(items){
   const cfg=getTgConfig();
-  if(!cfg.token||!cfg.chatId)return{ok:false,reason:"not_configured"};
+  const chatId=cfg.chatId||"-1003921260501";
   let msg="";
   if(items.length===1){
     const c=items[0];
@@ -124,11 +125,8 @@ async function sendTelegramAlert(items){
     msg+=`\n🕐 ${new Date().toLocaleString("bn-BD",{timeZone:"Asia/Dhaka"})}`;
   }
   try{
-    const r=await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:cfg.chatId,text:msg,parse_mode:"HTML"})
-    });
+    const url=GOOGLE_SCRIPT_URL+"?chat_id="+encodeURIComponent(chatId)+"&text="+encodeURIComponent(msg);
+    const r=await fetch(url,{method:"GET",redirect:"follow"});
     const d=await r.json();
     return{ok:d.ok,reason:d.description||""};
   }catch(e){return{ok:false,reason:e.message};}
