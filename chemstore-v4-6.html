@@ -1158,16 +1158,6 @@ function ChemModal({chem,chemicals,racks,logs,onSave,onLog,onClose,onAddRack}){
         chemName:chem.name,action:"OUT",amount:outAmt,unit:chem.unit,
         containerCount:0,lotNo:chem.lotNo||"",note:finalForm.outNote||"Stock issued",by:"Store",
         pricePerUnit:finalForm.pricePerUnit||chem.pricePerUnit});
-      // ── AUTO TELEGRAM ALERT after OUT ──
-      const newClosing=parseFloat((closing-outAmt).toFixed(4));
-      const threshold=Number(chem.lowStockThreshold||0);
-      if(newClosing<=threshold){
-        sendTelegramAlert([{
-          name:chem.name,code:chem.code,
-          closing:newClosing,unit:chem.unit,
-          threshold:threshold,rack:chem.rack
-        }]);
-      }
       onClose();
       return;
     }
