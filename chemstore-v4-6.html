@@ -1591,25 +1591,59 @@ async function parsePDFStock(file){
     fullText+=pageText+" ";
   }
 
-  // Parse the extracted text
+  // Parse by getting all text items per page with positions
   const items=[];
-  // Match pattern: number + name + None + Kg + 5 numbers
-  const numPat="([\d,]+\.\d+)";
-  const rowRegex=new RegExp(
-    "(\d{1,3})\s+(.+?)\s+None\s+Kg\.?\s+"+numPat+"\s+"+numPat+"\s+"+numPat+"\s+"+numPat+"\s+"+numPat,
-    "g"
-  );
-  let m;
-  while((m=rowRegex.exec(fullText))!==null){
-    const name=m[2].replace(/\s+/g," ").trim();
-    if(!name||name.length<2)continue;
-    const opening=parseFloat(m[3].replace(/,/g,""));
-    const totalReceive=parseFloat(m[4].replace(/,/g,""));
-    const totalItem=parseFloat(m[5].replace(/,/g,""));
-    const totalIssue=parseFloat(m[6].replace(/,/g,""));
-    const closing=parseFloat(m[7].replace(/,/g,""));
-    if(isNaN(closing))continue;
-    items.push({name,opening,totalReceive,totalIssue,closing});
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    // Group text items by their Y position (same line = same Y)
+    const lineMap={};
+    for(const item of tc.items){
+      if(!item.str.trim())continue;
+      const y=Math.round(item.transform[5]);
+      if(!lineMap[y])lineMap[y]=[];
+      lineMap[y].push({x:item.transform[4],text:item.str.trim()});
+    }
+    // Sort lines by Y descending (top to bottom)
+    const ys=Object.keys(lineMap).map(Number).sort((a,b)=>b-a);
+    const lines=ys.map(y=>lineMap[y].sort((a,b)=>a.x-b.x).map(t=>t.text).join(" "));
+
+    // Now parse lines - look for lines with 5 numbers at the end
+    const numRe=/^(\d{1,3})\s+(.+?)\s+(None|\w+)\s+Kg\.?\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)$/;
+    // Also handle split lines where name is on previous line
+    const numOnlyRe=/^(\d{1,3})\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)$/;
+
+    let pendingName="";
+    for(let li=0;li<lines.length;li++){
+      const line=lines[li].trim();
+      // Full row match
+      let m=line.match(numRe);
+      if(m){
+        const name=m[2].replace(/\s+/g," ").trim();
+        const closing=parseFloat(m[8].replace(/,/g,""));
+        const opening=parseFloat(m[4].replace(/,/g,""));
+        const totalIssue=parseFloat(m[7].replace(/,/g,""));
+        if(!isNaN(closing))items.push({name,opening,totalIssue,closing});
+        pendingName="";
+        continue;
+      }
+      // Number-only row (name was on previous line)
+      m=line.match(numOnlyRe);
+      if(m&&pendingName){
+        const closing=parseFloat(m[6].replace(/,/g,""));
+        const opening=parseFloat(m[2].replace(/,/g,""));
+        const totalIssue=parseFloat(m[5].replace(/,/g,""));
+        if(!isNaN(closing))items.push({name:pendingName,opening,totalIssue,closing});
+        pendingName="";
+        continue;
+      }
+      // Check if this looks like a name continuation line
+      if(/^[A-Za-z(]/.test(line)&&!/^(Product|Name|Unit|Item|Page|Opening|Tilargati|Concept|Grand|SL)/.test(line)){
+        pendingName=pendingName?pendingName+" "+line:line;
+      } else {
+        pendingName="";
+      }
+    }
   }
   return items;
 }
