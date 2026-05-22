@@ -2028,21 +2028,13 @@ function App(){
               onUpdate={async(matches)=>{
                 for(const m of matches){
                   if(!m.chem.docId)continue;
-                  await fsUpdate("chemicals",m.chem.docId,{openingBalance:m.closing});
-                  // Delete existing logs for this chemical and add fresh IN log
+                  // Delete ALL existing logs for this chemical
                   const chemLogs=logs.filter(l=>String(l.chemId)===String(m.chem.id));
                   for(const l of chemLogs){
                     if(l.docId)await fsDelete("logs",l.docId);
                   }
-                  if(m.closing>0){
-                    await fsAdd("logs",{
-                      id:genId(),date:new Date().toISOString().split("T")[0],
-                      chemId:m.chem.id,chemCode:m.chem.code||"",chemName:m.chem.name,
-                      action:"IN",amount:m.closing,unit:m.chem.unit||"kg",
-                      containerCount:0,lotNo:"",note:"📄 PDF Import - Stock Sync",by:"System",
-                      pricePerUnit:m.chem.pricePerUnit||0
-                    });
-                  }
+                  // Set opening balance = PDF closing, no IN/OUT logs
+                  await fsUpdate("chemicals",m.chem.docId,{openingBalance:m.closing});
                 }
                 // Reload data
                 const[chems,lg]=await Promise.all([fsGet("chemicals"),fsGet("logs")]);
