@@ -2026,14 +2026,16 @@ function App(){
               chemicals={chemicals}
               logs={logs}
               onUpdate={async(matches)=>{
+                // First fetch ALL fresh logs from Firebase
+                const allLogs=await fsGet("logs");
                 for(const m of matches){
                   if(!m.chem.docId)continue;
-                  // Delete ALL existing logs for this chemical
-                  const chemLogs=logs.filter(l=>String(l.chemId)===String(m.chem.id));
+                  // Delete ALL existing logs for this chemical from Firebase
+                  const chemLogs=allLogs.filter(l=>String(l.chemId)===String(m.chem.id));
                   for(const l of chemLogs){
                     if(l.docId)await fsDelete("logs",l.docId);
                   }
-                  // Set opening balance = PDF closing, no IN/OUT logs
+                  // Set opening balance = PDF closing, no IN/OUT logs added
                   await fsUpdate("chemicals",m.chem.docId,{openingBalance:m.closing});
                 }
                 // Reload data
