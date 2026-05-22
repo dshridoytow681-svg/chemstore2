@@ -1431,6 +1431,187 @@ function ChemModal({chem,chemicals,racks,logs,onSave,onLog,onClose,onAddRack}){
   );
 }
 
+// ── PDF IMPORT PANEL COMPONENT ────────────────────────────────────────────────
+function PDFImportPanel({chemicals,logs,onUpdate,onClose}){
+  const[step,setStep]=useState("upload"); // upload | preview | importing
+  const[matches,setMatches]=useState([]);
+  const[unmatched,setUnmatched]=useState([]);
+  const[importing,setImporting]=useState(false);
+  const[progress,setProgress]=useState(0);
+
+  const handleFile=async(e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    setStep("parsing");
+    try{
+      const items=await parsePDFStock(file);
+      if(items.length===0){
+        alert("PDF থেকে কোনো ডাটা পাওয়া যায়নি। সঠিক format এর PDF দিন।");
+        setStep("upload");
+        return;
+      }
+      const matched=[];
+      const notMatched=[];
+      for(const item of items){
+        const chem=matchChemical(item.name,chemicals);
+        if(chem){
+          matched.push({chem,pdfName:item.name,closing:item.closing,opening:item.opening,totalReceive:item.totalReceive,totalIssue:item.totalIssue});
+        }else{
+          notMatched.push(item.name);
+        }
+      }
+      setMatches(matched);
+      setUnmatched(notMatched);
+      setStep("preview");
+    }catch(err){
+      alert("PDF পড়তে সমস্যা হয়েছে: "+err.message);
+      setStep("upload");
+    }
+  };
+
+  const handleImport=async()=>{
+    setImporting(true);
+    setStep("importing");
+    try{
+      await onUpdate(matches);
+    }catch(err){
+      alert("আপডেট করতে সমস্যা হয়েছে: "+err.message);
+    }
+    setImporting(false);
+  };
+
+  if(step==="upload"||step==="parsing")return(
+    <div>
+      <div style={{background:"#1e293b",borderRadius:"12px",padding:"20px",marginBottom:"16px",textAlign:"center"}}>
+        <div style={{fontSize:"40px",marginBottom:"12px"}}>📄</div>
+        <div style={{color:"#e2e8f0",fontWeight:"700",fontSize:"14px",marginBottom:"8px"}}>ERP PDF আপলোড করুন</div>
+        <div style={{color:"#64748b",fontSize:"11px",marginBottom:"16px"}}>যেকোনো নামের PDF চলবে — শুধু format একই হতে হবে</div>
+        <input type="file" accept=".pdf,.txt" onChange={handleFile}
+          style={{display:"none"}} id="pdfInput"/>
+        <label htmlFor="pdfInput" style={{background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",
+          borderRadius:"8px",padding:"12px 24px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>
+          {step==="parsing"?"⏳ পড়ছে...":"📂 PDF বাছাই করুন"}
+        </label>
+      </div>
+      <div style={{background:"#0f172a",borderRadius:"8px",padding:"12px",fontSize:"11px",color:"#64748b"}}>
+        💡 <b style={{color:"#94a3b8"}}>টিপস:</b> Chemical ও Dye দুটো আলাদা PDF একসাথে না দিয়ে একটা একটা করে আপলোড করুন।
+      </div>
+    </div>
+  );
+
+  if(step==="preview")return(
+    <div>
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
+        <div style={{flex:1,background:"#14532d33",border:"1px solid #4ade8044",borderRadius:"10px",padding:"12px",textAlign:"center"}}>
+          <div style={{color:"#4ade80",fontWeight:"900",fontSize:"22px"}}>{matches.length}</div>
+          <div style={{color:"#4ade80",fontSize:"11px"}}>Match হয়েছে</div>
+        </div>
+        <div style={{flex:1,background:"#7f1d1d33",border:"1px solid #ef444444",borderRadius:"10px",padding:"12px",textAlign:"center"}}>
+          <div style={{color:"#f87171",fontWeight:"900",fontSize:"22px"}}>{unmatched.length}</div>
+          <div style={{color:"#f87171",fontSize:"11px"}}>Match হয়নি</div>
+        </div>
+      </div>
+
+      <div style={{maxHeight:"300px",overflowY:"auto",marginBottom:"16px"}}>
+        {matches.map((m,i)=>(
+          <div key={i} style={{background:"#1e293b",borderRadius:"8px",padding:"10px 12px",marginBottom:"6px",
+            display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{color:"#e2e8f0",fontSize:"12px",fontWeight:"700"}}>{m.chem.name}</div>
+              <div style={{color:"#64748b",fontSize:"10px"}}>PDF: {m.pdfName}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:"#fbbf24",fontWeight:"900",fontSize:"13px"}}>{m.closing} kg</div>
+              <div style={{color:"#64748b",fontSize:"9px"}}>Closing</div>
+            </div>
+          </div>
+        ))}
+        {unmatched.length>0&&(
+          <div style={{background:"#7f1d1d22",border:"1px solid #ef444433",borderRadius:"8px",padding:"12px",marginTop:"8px"}}>
+            <div style={{color:"#f87171",fontWeight:"700",fontSize:"12px",marginBottom:"8px"}}>⚠️ Match হয়নি ({unmatched.length}টি):</div>
+            {unmatched.map((n,i)=>(
+              <div key={i} style={{color:"#94a3b8",fontSize:"11px",marginBottom:"4px"}}>• {n}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{display:"flex",gap:"10px"}}>
+        <button onClick={()=>setStep("upload")}
+          style={{flex:1,padding:"12px",borderRadius:"8px",border:"1px solid #334155",
+            background:"#1e293b",color:"#94a3b8",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>
+          ← ফিরে যান
+        </button>
+        <button onClick={handleImport} disabled={matches.length===0}
+          style={{flex:2,padding:"12px",borderRadius:"8px",border:"none",
+            background:matches.length>0?"linear-gradient(135deg,#7c3aed,#6d28d9)":"#334155",
+            color:"#fff",cursor:matches.length>0?"pointer":"not-allowed",fontSize:"13px",fontWeight:"700"}}>
+          ✅ {matches.length}টি আইটেম আপডেট করুন
+        </button>
+      </div>
+    </div>
+  );
+
+  if(step==="importing")return(
+    <div style={{textAlign:"center",padding:"30px"}}>
+      <div style={{fontSize:"40px",marginBottom:"16px"}}>⏳</div>
+      <div style={{color:"#a78bfa",fontWeight:"700",fontSize:"14px"}}>আপডেট হচ্ছে...</div>
+      <div style={{color:"#64748b",fontSize:"12px",marginTop:"8px"}}>একটু অপেক্ষা করুন</div>
+    </div>
+  );
+
+  return null;
+}
+
+// ── PDF IMPORT ────────────────────────────────────────────────────────────────
+async function parsePDFStock(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      try{
+        const text=e.target.result;
+        const lines=text.split(/\n/);
+        const items=[];
+        const rowRegex=/^(\d+)\s+(.+?)\s+(None|\w+)\s+Kg\.?\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)/;
+        for(const line of lines){
+          const m=line.match(rowRegex);
+          if(m){
+            const name=m[2].trim();
+            const opening=parseFloat(m[4].replace(/,/g,""));
+            const totalReceive=parseFloat(m[5].replace(/,/g,""));
+            const totalItem=parseFloat(m[6].replace(/,/g,""));
+            const totalIssue=parseFloat(m[7].replace(/,/g,""));
+            const closing=parseFloat(m[8].replace(/,/g,""));
+            items.push({name,opening,totalReceive,totalIssue,closing});
+          }
+        }
+        resolve(items);
+      }catch(err){reject(err);}
+    };
+    reader.readAsText(file);
+  });
+}
+
+function normalizeName(n){
+  return (n||"").toLowerCase()
+    .replace(/[()\-\.]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function matchChemical(pdfName,chemicals){
+  const pdfNorm=normalizeName(pdfName);
+  // Exact match first
+  let found=chemicals.find(c=>normalizeName(c.name)===pdfNorm);
+  if(found)return found;
+  // Partial match - pdf name contains chem name or vice versa
+  found=chemicals.find(c=>{
+    const cNorm=normalizeName(c.name);
+    return pdfNorm.includes(cNorm)||cNorm.includes(pdfNorm);
+  });
+  return found||null;
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 function App(){
   const[tab,setTab]=useState("warehouse");
@@ -1445,6 +1626,8 @@ function App(){
   const[tgModal,setTgModal]=useState(false);
   const[alertSent,setAlertSent]=useState(null);
   const[theme,setTheme]=useState(()=>localStorage.getItem("chemstore_theme")||"dark");
+  const[pdfModal,setPdfModal]=useState(false);
+  const[pdfResult,setPdfResult]=useState(null);
   const[lang,setLang]=useState(()=>localStorage.getItem("chemstore_lang")||"bn");
   const T={
     bn:{warehouse:"🏭 গুদাম",stock:"📋 স্টক লেজার",log:"📜 IN/OUT লগ",production:"🧪 উৎপাদন",
@@ -1633,6 +1816,9 @@ function App(){
           {lowStock.length>0&&<div style={{background:"#7f1d1d44",border:"1px solid #ef444466",borderRadius:"7px",padding:"6px 12px",color:"#f87171",fontSize:"13px",fontWeight:"700",animation:"pulse 2s infinite"}}>🔴 {lowStock.length} {lang==="bn"?"কম":"Low"}</div>}
           <button onClick={()=>setModal({})} className="btn-hover"
             style={{background:"linear-gradient(135deg,#0284c7,#0369a1)",color:"#fff",border:"none",borderRadius:"8px",padding:"9px 16px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>➕ {tx.add.replace("➕ ","")}</button>
+          <button onClick={()=>setPdfModal(true)} className="btn-hover"
+            style={{background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",border:"none",borderRadius:"8px",padding:"9px 12px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}
+            title="PDF থেকে স্টক আপডেট">📄 PDF</button>
           <button onClick={loadData} className="btn-hover"
             style={{background:"#1e293b",color:"#94a3b8",border:"1px solid #334155",borderRadius:"8px",padding:"9px 12px",cursor:"pointer",fontSize:"11px"}}>🔄</button>
 
@@ -1773,6 +1959,57 @@ function App(){
           onClose={()=>setModal(null)} onAddRack={addRack}/>
       )}
       {tgModal&&<TelegramSettingsModal onClose={()=>setTgModal(false)}/>}
+      {pdfModal&&(
+        <div style={{position:"fixed",inset:0,background:"#000a",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div style={{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:"16px",padding:"24px",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+              <div style={{color:"#a78bfa",fontWeight:"800",fontSize:"16px"}}>📄 PDF থেকে স্টক আপডেট</div>
+              <button onClick={()=>{setPdfModal(false);setPdfResult(null);}} style={{background:"none",border:"none",color:"#94a3b8",fontSize:"20px",cursor:"pointer"}}>✕</button>
+            </div>
+            <PDFImportPanel
+              chemicals={chemicals}
+              logs={logs}
+              onUpdate={async(matches)=>{
+                for(const m of matches){
+                  if(!m.chem.docId)continue;
+                  await fsUpdate("chemicals",m.chem.docId,{openingBalance:m.closing});
+                  // Delete existing logs for this chemical and add fresh IN log
+                  const chemLogs=logs.filter(l=>String(l.chemId)===String(m.chem.id));
+                  for(const l of chemLogs){
+                    if(l.docId)await fsDelete("logs",l.docId);
+                  }
+                  if(m.closing>0){
+                    await fsAdd("logs",{
+                      id:genId(),date:new Date().toISOString().split("T")[0],
+                      chemId:m.chem.id,chemCode:m.chem.code||"",chemName:m.chem.name,
+                      action:"IN",amount:m.closing,unit:m.chem.unit||"kg",
+                      containerCount:0,lotNo:"",note:"📄 PDF Import - Stock Sync",by:"System",
+                      pricePerUnit:m.chem.pricePerUnit||0
+                    });
+                  }
+                }
+                // Reload data
+                const[chems,lg]=await Promise.all([fsGet("chemicals"),fsGet("logs")]);
+                setChemicals(chems);setLogs(lg);
+                // Send telegram alert for low stock items
+                const lowItems=matches.filter(m=>m.closing<=Number(m.chem.lowStockThreshold||0)&&m.closing>0);
+                if(lowItems.length>0){
+                  await sendTelegramAlert(lowItems.map(m=>({
+                    name:m.chem.name,code:m.chem.code||"",
+                    closing:parseFloat(m.closing.toFixed(3)),
+                    unit:m.chem.unit||"kg",
+                    threshold:m.chem.lowStockThreshold||0,
+                    rack:m.chem.rack||""
+                  })));
+                }
+                setPdfModal(false);setPdfResult(null);
+                alert(`✅ ${matches.length}টি আইটেম আপডেট হয়েছে!${lowItems.length>0?`\n⚠️ ${lowItems.length}টি Low Stock Alert পাঠানো হয়েছে`:""}`);
+              }}
+              onClose={()=>{setPdfModal(false);setPdfResult(null);}}
+            />
+          </div>
+        </div>
+      )}
       {alertSent&&(
         <div style={{position:"fixed",bottom:"24px",right:"24px",zIndex:2000,
           background:alertSent.startsWith("✅")?"#14532d":"#7f1d1d",
