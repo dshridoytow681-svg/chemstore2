@@ -1670,7 +1670,7 @@ function matchChemical(pdfName,chemicals){
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 function App(){
-  const[tab,setTab]=useState("warehouse");
+  const[tab,setTab]=useState("home");
   const[chemicals,setChemicals]=useState([]);
   const[logs,setLogs]=useState([]);
   const[racks,setRacks]=useState(mkRacks(["A","B","C","D","E"]));
@@ -1806,6 +1806,7 @@ function App(){
   const lowStock=chemicals.filter(c=>{const{closing}=buildLedger(c,logs);return c.status==="IN"&&closing<=c.lowStockThreshold;});
 
   const TABS=[
+    {id:"home",label:lang==="bn"?"🏠 হোম":"🏠 Home"},
     {id:"warehouse",label:tx.warehouse},
     {id:"stock",label:tx.stock},
     {id:"log",label:tx.log},
@@ -1898,6 +1899,82 @@ function App(){
           </button>
         ))}
       </div>
+
+      {/* HOME TAB */}
+      {tab==="home"&&(
+        <div style={{minHeight:"80vh",background:isDark?"linear-gradient(160deg,#020c1b 0%,#0a1628 40%,#0d2137 100%)":"linear-gradient(160deg,#e0f7f4 0%,#b2ebf2 40%,#80deea 100%)",position:"relative",overflow:"hidden",padding:"0 0 40px 0"}}>
+          {/* Curved background shapes */}
+          <div style={{position:"absolute",top:"-80px",right:"-80px",width:"350px",height:"350px",borderRadius:"50%",background:isDark?"rgba(20,184,166,0.08)":"rgba(0,150,136,0.15)",zIndex:0}}/>
+          <div style={{position:"absolute",bottom:"-60px",left:"-60px",width:"280px",height:"280px",borderRadius:"50%",background:isDark?"rgba(20,184,166,0.06)":"rgba(0,150,136,0.12)",zIndex:0}}/>
+          <div style={{position:"absolute",top:"40%",left:"30%",width:"200px",height:"200px",borderRadius:"50%",background:isDark?"rgba(56,189,248,0.04)":"rgba(0,188,212,0.1)",zIndex:0}}/>
+
+          {/* Title */}
+          <div style={{textAlign:"center",padding:"30px 20px 20px",position:"relative",zIndex:1}}>
+            <div style={{fontSize:"28px",fontWeight:"900",color:isDark?"#38bdf8":"#00796b",letterSpacing:"2px"}}>⚗️ ChemStore Pro</div>
+            <div style={{fontSize:"12px",color:isDark?"#64748b":"#00897b",marginTop:"4px"}}>Smart Chemical Warehouse Management</div>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"16px",padding:"10px 20px",position:"relative",zIndex:1}}>
+            {[
+              {id:"warehouse",icon:"🏭",label:lang==="bn"?"গুদাম":"Warehouse",color:"#0284c7",bg:isDark?"#0c2340":"#e3f2fd"},
+              {id:"stock",icon:"📋",label:lang==="bn"?"স্টক লেজার":"Stock Ledger",color:"#7c3aed",bg:isDark?"#1a0a40":"#ede7f6"},
+              {id:"log",icon:"📜",label:lang==="bn"?"IN/OUT লগ":"IN/OUT Log",color:"#059669",bg:isDark?"#052e16":"#e8f5e9"},
+              {id:"production",icon:"🧪",label:lang==="bn"?"উৎপাদন":"Production",color:"#d97706",bg:isDark?"#2d1a00":"#fff8e1"},
+              {id:"compat",icon:"⚠️",label:lang==="bn"?"সামঞ্জস্যতা":"Compatibility",color:"#dc2626",bg:isDark?"#2d0a0a":"#ffebee"},
+              {id:"alerts",icon:"🔴",label:lang==="bn"?`সতর্কতা${lowStock.length?` (${lowStock.length})`:""}`:
+                `Alerts${lowStock.length?` (${lowStock.length})`:""}`,color:"#ef4444",bg:isDark?"#2d0a0a":"#ffebee"},
+              {id:"settings",icon:"⚙️",label:lang==="bn"?"সেটিংস":"Settings",color:"#64748b",bg:isDark?"#1e293b":"#f1f5f9"},
+            ].map(card=>(
+              <div key={card.id} onClick={()=>setTab(card.id)}
+                style={{background:isDark?card.bg:"#fff",borderRadius:"16px",padding:"20px 10px",
+                  textAlign:"center",cursor:"pointer",
+                  boxShadow:isDark?"0 4px 20px rgba(0,0,0,0.4)":"0 4px 20px rgba(0,0,0,0.1)",
+                  border:`1px solid ${card.color}33`,
+                  transition:"transform .2s,box-shadow .2s",
+                  display:"flex",flexDirection:"column",alignItems:"center",gap:"10px"}}
+                onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.05)";e.currentTarget.style.boxShadow=`0 8px 30px ${card.color}44`;}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow=isDark?"0 4px 20px rgba(0,0,0,0.4)":"0 4px 20px rgba(0,0,0,0.1)";}}>
+                <div style={{width:"56px",height:"56px",borderRadius:"50%",background:`${card.color}22`,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:"26px",
+                  border:`2px solid ${card.color}44`}}>
+                  {card.icon}
+                </div>
+                <div style={{fontSize:"11px",fontWeight:"700",color:isDark?"#e2e8f0":"#1a202c",lineHeight:"1.3",textAlign:"center"}}>
+                  {card.label}
+                </div>
+                {card.id==="alerts"&&lowStock.length>0&&(
+                  <div style={{background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"2px 8px",fontSize:"10px",fontWeight:"700"}}>
+                    {lowStock.length} Low
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Stats Row */}
+          <div style={{display:"flex",gap:"10px",padding:"16px 20px 0",position:"relative",zIndex:1}}>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#1e3a5f":"#b2dfdb"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#38bdf8"}}>{chemicals.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#00796b"}}>{lang==="bn"?"মোট আইটেম":"Total Items"}</div>
+            </div>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#7f1d1d":"#ffcdd2"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#ef4444"}}>{lowStock.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#c62828"}}>{lang==="bn"?"কম স্টক":"Low Stock"}</div>
+            </div>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#1e3a5f":"#b2dfdb"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#4ade80"}}>{logs.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#00796b"}}>{lang==="bn"?"মোট লগ":"Total Logs"}</div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{textAlign:"center",padding:"24px 20px 0",position:"relative",zIndex:1}}>
+            <div style={{fontSize:"10px",color:isDark?"#334155":"#00897b"}}>👨‍💻 Developed by Md Khairul Islam</div>
+            <a href="https://wa.me/8801927999251" style={{color:"#25D366",fontSize:"10px",textDecoration:"none"}}>📱 +8801927999251</a>
+          </div>
+        </div>
+      )}
 
       {/* WAREHOUSE TAB */}
       {tab==="warehouse"&&(
