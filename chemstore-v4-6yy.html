@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>⚗️ ChemStore Pro v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#020c1b;font-family:'JetBrains Mono',monospace;color:#e2e8f0;min-height:100vh;font-size:15px}
+      body.light-theme{background:#f0f4f8!important;color:#1a202c!important}
+      body.light-theme .dark-bg{background:#ffffff!important;color:#1a202c!important}
+      body.light-theme .dark-bg2{background:#f1f5f9!important}
+      body.light-theme .dark-border{border-color:#cbd5e1!important}
+      body.light-theme .dark-text{color:#1a202c!important}
+      body.light-theme .dark-text2{color:#64748b!important}
+      body.light-theme input,body.light-theme select,body.light-theme textarea{background:#f1f5f9!important;color:#1a202c!important;border-color:#cbd5e1!important}
+      body.light-theme table tr{background:#ffffff!important;color:#1a202c!important}
+      body.light-theme table tr:nth-child(even){background:#f8fafc!important}
+      body.light-theme table th{background:#e2e8f0!important;color:#475569!important;border-color:#cbd5e1!important}
+      body.light-theme table td{border-color:#e2e8f0!important;color:#1a202c!important}
+      body.light-theme .modal-bg{background:#ffffff!important}
+      body.light-theme *[style]{filter:none}
+      body.light-theme table{background:#ffffff!important;color:#1a202c!important}
+      body.light-theme table thead tr{background:#e2e8f0!important}
+      body.light-theme table thead th{background:#e2e8f0!important;color:#334155!important}
+      body.light-theme table tbody tr{background:#ffffff!important;color:#1a202c!important}
+      body.light-theme table tbody tr:hover{background:#f1f5f9!important}
+      body.light-theme table tbody td{color:#1a202c!important;border-color:#e2e8f0!important}
+      body.light-theme input,body.light-theme select{background:#f8fafc!important;color:#1a202c!important;border-color:#cbd5e1!important}
+      body.light-theme button:not([style*="#38bdf8"]):not([style*="#166534"]):not([style*="#ef4444"]):not([style*="#0284c7"]):not([style*="linear-gradient"]){background:#e2e8f0!important;color:#334155!important;border-color:#cbd5e1!important}
+      body.light-theme [style*="background:"#1e293b""],[style*="background:#1e293b"]{background:#f1f5f9!important}
+      body.light-theme [style*="background:"#0a1628""],[style*="background:#0a1628"]{background:#ffffff!important}
+      body.light-theme [style*="background:"#020c1b""],[style*="background:#020c1b"]{background:#f0f4f8!important}
+      body.light-theme [style*="background:"#0f172a""],[style*="background:#0f172a"]{background:#f8fafc!important}
+      body.light-theme [style*="color:"#e2e8f0""],[style*="color:#e2e8f0"]{color:#1a202c!important}
+      body.light-theme [style*="color:"#94a3b8""],[style*="color:#94a3b8"]{color:#64748b!important}
+      body.light-theme [style*="borderTop:"1px solid #1e293b""]{border-color:#cbd5e1!important}
+      body.light-theme [style*="borderBottom:"1px solid #1e293b""]{border-color:#cbd5e1!important}
+      body.light-theme [style*="border:"1px solid #1e293b""]{border-color:#cbd5e1!important}
+      body.light-theme [style*="border:"1px solid #334155""]{border-color:#cbd5e1!important}
+      body.light-theme [style*="background:"linear-gradient(180deg,#020c1b"]{background:linear-gradient(180deg,#e2e8f0,#f8fafc)!important}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0a1628}
+::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:3px}
+select option{background:#1e293b;color:#e2e8f0}
+input,select,button,textarea{font-family:'JetBrains Mono',monospace;outline:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes alertPulse{0%,100%{box-shadow:0 0 0 0 #ef444466}50%{box-shadow:0 0 0 12px #ef444400}}
+.card-hover{transition:all .25s;cursor:pointer}
+.card-hover:hover{transform:translateY(-3px);filter:brightness(1.1)}
+.btn-hover{transition:all .18s}
+.btn-hover:hover{filter:brightness(1.2);transform:scale(1.04)}
+.rack-item{transition:all .2s}
+.rack-item:hover{transform:scale(1.06);z-index:10}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef,Fragment}=React;
+
+// ── FIREBASE REST API ─────────────────────────────────────────────────────────
+const PROJECT="chemstore-pro";
+const API_KEY="AIzaSyAtf3LG5FunLiJnvhcDtmM0HRhWXxOSg90";
+const BASE=`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+function fromDoc(doc){
+  if(!doc||!doc.fields)return null;
+  const obj={docId:doc.name?.split("/").pop()};
+  for(const[k,v]of Object.entries(doc.fields)){
+    if(v.stringValue!==undefined)obj[k]=v.stringValue;
+    else if(v.integerValue!==undefined)obj[k]=Number(v.integerValue);
+    else if(v.doubleValue!==undefined)obj[k]=Number(v.doubleValue);
+    else if(v.booleanValue!==undefined)obj[k]=v.booleanValue;
+    else if(v.arrayValue!==undefined)obj[k]=(v.arrayValue.values||[]).map(x=>x.stringValue||String(x.integerValue||x.doubleValue||""));
+    else obj[k]="";
+  }
+  return obj;
+}
+function toFields(obj){
+  const fields={};
+  for(const[k,v]of Object.entries(obj)){
+    if(k==="docId")continue;
+    if(Array.isArray(v))fields[k]={arrayValue:{values:v.map(x=>({stringValue:String(x)}))}};
+    else if(typeof v==="number")fields[k]={doubleValue:v};
+    else if(typeof v==="boolean")fields[k]={booleanValue:v};
+    else fields[k]={stringValue:String(v??"")};
+  }
+  return{fields};
+}
+async function fsGet(col){
+  const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=300`);
+  const d=await r.json();
+  return(d.documents||[]).map(fromDoc).filter(Boolean);
+}
+async function fsAdd(col,data){
+  const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(toFields(data))
+  });
+  return await r.json();
+}
+async function fsUpdate(col,docId,data){
+  if(!docId)throw new Error("docId is required for update");
+  const fields=toFields(data).fields;
+  const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${encodeURIComponent(f)}`).join("&");
+  const r=await fetch(`${BASE}/${col}/${docId}?key=${API_KEY}&${mask}`,{
+    method:"PATCH",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({fields})
+  });
+  return await r.json();
+}
+async function fsDelete(col,docId){
+  await fetch(`${BASE}/${col}/${docId}?key=${API_KEY}`,{method:"DELETE"});
+}
+
+// ── TELEGRAM ALERT ────────────────────────────────────────────────────────────
+const TG_CONFIG_KEY="chemstore_tg_config";
+const TG_DEFAULT={token:"8911543874:AAE64Gg2DUCPbw8EN4TMjIMyB0kJnVM9AGE",chatId:"-1003921260501"};
+function getTgConfig(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(TG_CONFIG_KEY)||"{}");
+    return{
+      token:saved.token||TG_DEFAULT.token,
+      chatId:saved.chatId||TG_DEFAULT.chatId
+    };
+  }catch(e){return TG_DEFAULT;}
+}
+const GOOGLE_SCRIPT_URL="https://script.google.com/macros/s/AKfycbzFW6Q9Y2ZpXrUHHTlX6gL2WAeoiDvi49IiTHs2C8WV36aSRMaeZyg4BnjUhRZD_moO/exec";
+async function sendTelegramAlert(items){
+  const cfg=getTgConfig();
+  const chatId=cfg.chatId||"-1003921260501";
+  let msg="";
+  if(items.length===1){
+    const c=items[0];
+    msg=`⚠️ <b>LOW STOCK ALERT</b>\n\n`+
+        `🧪 পণ্য: <b>${c.name}</b>\n`+
+        `🔖 কোড: <code>${c.code||"—"}</code>\n`+
+        `📦 বর্তমান স্টক: <b>${parseFloat(Number(c.closing).toFixed(3))} ${c.unit}</b>\n`+
+        `🔴 সর্বনিম্ন সীমা: <b>${c.threshold} ${c.unit}</b>\n`+
+        `🏭 Rack: <b>${c.rack||"—"}</b>\n`+
+        `🕐 সময়: ${new Date().toLocaleString("bn-BD",{timeZone:"Asia/Dhaka"})}\n\n`+
+        `⚡ দ্রুত রিঅর্ডার করুন!`;
+  }else{
+    msg=`📋 <b>LOW STOCK রিপোর্ট</b>\n${items.length}টি পণ্যের স্টক কম:\n\n`;
+    items.forEach((c,i)=>{
+      msg+=`${i+1}. 🧪 <b>${c.name}</b> — ${c.closing} ${c.unit} (সীমা: ${c.threshold})\n`;
+    });
+    msg+=`\n🕐 ${new Date().toLocaleString("bn-BD",{timeZone:"Asia/Dhaka"})}`;
+  }
+  try{
+    const url=GOOGLE_SCRIPT_URL+"?chat_id="+encodeURIComponent(chatId)+"&text="+encodeURIComponent(msg);
+    const r=await fetch(url,{method:"GET",redirect:"follow"});
+    const d=await r.json();
+    return{ok:d.ok,reason:d.description||""};
+  }catch(e){return{ok:false,reason:e.message};}
+}
+
+// ── TELEGRAM SETTINGS MODAL ───────────────────────────────────────────────────
+function TelegramSettingsModal({onClose}){
+  const saved=getTgConfig();
+  const[token,setToken]=useState(saved.token||"");
+  const[chatId,setChatId]=useState(saved.chatId||"");
+  const[testing,setTesting]=useState(false);
+  const[testResult,setTestResult]=useState(null);
+
+  const save=()=>{
+    localStorage.setItem(TG_CONFIG_KEY,JSON.stringify({token:token.trim(),chatId:chatId.trim()}));
+    onClose();
+  };
+  const test=async()=>{
+    if(!token.trim()||!chatId.trim()){setTestResult({ok:false,msg:"Token ও Chat ID দিন"});return;}
+    setTesting(true);setTestResult(null);
+    localStorage.setItem(TG_CONFIG_KEY,JSON.stringify({token:token.trim(),chatId:chatId.trim()}));
+    const r=await sendTelegramAlert([{name:"Test Chemical",code:"TEST-001",closing:5,unit:"kg",threshold:10,rack:"A-01"}]);
+    setTesting(false);
+    setTestResult(r.ok?{ok:true,msg:"✅ টেস্ট মেসেজ পাঠানো হয়েছে!"}:{ok:false,msg:"❌ ব্যর্থ: "+r.reason});
+  };
+
+  return(
+    <>
+      <div onClick={onClose} style={{position:"fixed",inset:0,background:"#00000088",zIndex:999}}/>
+      <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+        background:"linear-gradient(135deg,#0f172a,#1e293b)",border:"1px solid #38bdf844",
+        borderRadius:"16px",padding:"28px",zIndex:1000,width:"min(420px,95vw)",fontFamily:"'JetBrains Mono',monospace"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+          <div style={{color:"#38bdf8",fontWeight:"800",fontSize:"15px"}}>🤖 Telegram অ্যালার্ট সেটআপ</div>
+          <button onClick={onClose} style={{background:"#1e293b",border:"1px solid #334155",color:"#94a3b8",borderRadius:"6px",padding:"4px 10px",cursor:"pointer",fontSize:"13px"}}>✕</button>
+        </div>
+
+        <div style={{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:"10px",padding:"14px",marginBottom:"16px",fontSize:"11px",color:"#64748b",lineHeight:"1.7"}}>
+          <div style={{color:"#38bdf8",fontWeight:"700",marginBottom:"6px"}}>📌 Bot বানানোর ধাপ:</div>
+          <div>১. Telegram-এ <b style={{color:"#e2e8f0"}}>@BotFather</b> খুঁজুন</div>
+          <div>২. <code style={{color:"#fbbf24"}}>/newbot</code> পাঠান → নাম দিন</div>
+          <div>৩. Token কপি করুন নিচে বসান</div>
+          <div style={{marginTop:"6px"}}>Chat ID-র জন্য: <b style={{color:"#e2e8f0"}}>@userinfobot</b>-কে যেকোনো মেসেজ দিন</div>
+        </div>
+
+        <div style={{marginBottom:"12px"}}>
+          <div style={{fontSize:"10px",color:"#94a3b8",marginBottom:"5px"}}>BOT TOKEN</div>
+          <input value={token} onChange={e=>setToken(e.target.value)} placeholder="1234567890:AAHxxxxxxxxxxxxxxxx"
+            style={{width:"100%",background:"#0a1628",border:"1px solid #1e3a5f",color:"#e2e8f0",
+              borderRadius:"8px",padding:"10px 12px",fontSize:"11px",fontFamily:"'JetBrains Mono',monospace"}}/>
+        </div>
+        <div style={{marginBottom:"16px"}}>
+          <div style={{fontSize:"10px",color:"#94a3b8",marginBottom:"5px"}}>CHAT ID (আপনার Telegram নম্বর)</div>
+          <input value={chatId} onChange={e=>setChatId(e.target.value)} placeholder="123456789"
+            style={{width:"100%",background:"#0a1628",border:"1px solid #1e3a5f",color:"#e2e8f0",
+              borderRadius:"8px",padding:"10px 12px",fontSize:"11px",fontFamily:"'JetBrains Mono',monospace"}}/>
+        </div>
+
+        {testResult&&(
+          <div style={{background:testResult.ok?"#14532d33":"#7f1d1d33",border:`1px solid ${testResult.ok?"#4ade8055":"#ef444455"}`,
+            borderRadius:"8px",padding:"10px 12px",marginBottom:"12px",fontSize:"11px",
+            color:testResult.ok?"#4ade80":"#f87171"}}>{testResult.msg}</div>
+        )}
+
+        <div style={{display:"flex",gap:"8px"}}>
+          <button onClick={test} disabled={testing}
+            style={{flex:1,background:"#1e3a5f",color:"#38bdf8",border:"1px solid #38bdf844",borderRadius:"10px",
+              padding:"11px",cursor:"pointer",fontSize:"11px",fontWeight:"700"}}>
+            {testing?"📡 পাঠাচ্ছি...":"📤 টেস্ট মেসেজ"}
+          </button>
+          <button onClick={save}
+            style={{flex:1,background:"linear-gradient(135deg,#0284c7,#0369a1)",color:"#fff",border:"none",
+              borderRadius:"10px",padding:"11px",cursor:"pointer",fontSize:"11px",fontWeight:"700"}}>
+            💾 সংরক্ষণ করুন
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const HAZARD_CLASSES={
+  NONE: {label:"None / Safe",       icon:"🔘", color:"#6b7280", short:"—"},
+  C:    {label:"Corrosive (C)",     icon:"⚗️", color:"#8b5cf6", short:"C"},
+  Xi:   {label:"Irritant (Xi)",     icon:"⚠️", color:"#eab308", short:"Xi"},
+  T:    {label:"Toxic (T)",         icon:"☠️", color:"#10b981", short:"T"},
+  F:    {label:"Flammable (F)",     icon:"🔥", color:"#f97316", short:"F"},
+  O:    {label:"Oxidizer (O)",      icon:"⭕", color:"#f59e0b", short:"O"},
+  E:    {label:"Explosive (E)",     icon:"💥", color:"#ef4444", short:"E"},
+  N:    {label:"Environmental (N)", icon:"🌿", color:"#22c55e", short:"N"},
+  Xn:   {label:"Harmful (Xn)",     icon:"🫁", color:"#ec4899", short:"Xn"},
+};
+
+// Compatibility: false=BLOCKED, "caution"=warn, true=OK
+const COMPAT_MATRIX={
+  NONE:{NONE:true,C:true,Xi:true,T:true,F:true,O:true,E:"caution",N:true,Xn:true},
+  C:   {NONE:true,C:true,Xi:"caution",T:"caution",F:false,O:"caution",E:false,N:"caution",Xn:"caution"},
+  Xi:  {NONE:true,C:"caution",Xi:true,T:true,F:true,O:true,E:false,N:true,Xn:true},
+  T:   {NONE:true,C:"caution",Xi:true,T:true,F:"caution",O:"caution",E:false,N:"caution",Xn:true},
+  F:   {NONE:true,C:false,Xi:true,T:"caution",F:"caution",O:false,E:false,N:true,Xn:true},
+  O:   {NONE:true,C:"caution",Xi:true,T:"caution",F:false,O:"caution",E:false,N:true,Xn:true},
+  E:   {NONE:"caution",C:false,Xi:false,T:false,F:false,O:false,E:false,N:false,Xn:false},
+  N:   {NONE:true,C:"caution",Xi:true,T:"caution",F:true,O:true,E:false,N:true,Xn:true},
+  Xn:  {NONE:true,C:"caution",Xi:true,T:true,F:true,O:true,E:false,N:true,Xn:true},
+};
+
+const CURRENCIES=[{v:"BDT",sym:"৳"},{v:"USD",sym:"$"}];
+const CONTAINERS=["Drum","Carton","Bag","Jar","Can","IBC","Bottle"];
+const UNITS=["kg","g","L","mL","pcs","ton"];
+
+function genId(){return Date.now()+Math.floor(Math.random()*99999);}
+function mkRacks(rows){const r=[];rows.forEach(l=>[1,2,3,4,5].forEach(n=>r.push(`${l}-${String(n).padStart(2,"0")}`)));return r;}
+function fmtCur(a,c){const s=CURRENCIES.find(x=>x.v===c)?.sym||"৳";return`${s}${Number(a||0).toLocaleString(undefined,{maximumFractionDigits:2})}`;}
+
+// Unit conversion to base unit (kg or L)
+function toBaseUnit(amount,unit){
+  if(unit==="g")return amount/1000;
+  if(unit==="mL")return amount/1000;
+  if(unit==="ton")return amount*1000;
+  return amount;
+}
+function fromBaseUnit(amount,unit){
+  if(unit==="g")return amount*1000;
+  if(unit==="mL")return amount*1000;
+  if(unit==="ton")return amount/1000;
+  return amount;
+}
+
+// WAC = (oldQty*oldCost + newQty*newCost) / (oldQty+newQty)
+function calcWAC(oldQty,oldCost,newQty,newCost){
+  const total=oldQty+newQty;
+  if(total===0)return newCost;
+  return((oldQty*oldCost)+(newQty*newCost))/total;
+}
+
+function buildLedger(chem,logs){
+  const cl=[...logs.filter(l=>String(l.chemId)===String(chem.id))].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  let bal=Number(chem.openingBalance||0);
+  let wac=Number(chem.pricePerUnit||0);
+  const rows=cl.map(l=>{
+    const q=Number(l.amount);const b=bal;
+    if(l.action==="IN"){
+      // Recalculate WAC on each IN
+      if(l.pricePerUnit&&Number(l.pricePerUnit)>0){
+        wac=calcWAC(bal,wac,q,Number(l.pricePerUnit));
+      }
+      bal+=q;
+    }
+    if(l.action==="OUT")bal-=q;
+    return{...l,before:b,qty:q,after:bal,wacAtTime:wac};
+  });
+  return{opening:Number(chem.openingBalance||0),ledger:rows,closing:bal,currentWAC:wac};
+}
+
+function exportCSV(data,filename,cols){
+  const hdr=cols.map(c=>c.label).join(",");
+  const rows=data.map(r=>cols.map(c=>{let v=c.get?c.get(r):(r[c.key]??"");if(typeof v==="string"&&(v.includes(",")||v.includes('"')))v=`"${v.replace(/"/g,'""')}"`;return v;}).join(","));
+  const blob=new Blob(["\uFEFF"+[hdr,...rows].join("\n")],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+
+// ── SAFETY CONFLICT BAR ───────────────────────────────────────────────────────
+function SafetyBar({chemicals,racks}){
+  const conflicts=[];
+  racks.forEach(rack=>{
+    const chems=chemicals.filter(c=>c.rack===rack&&c.status==="IN");
+    for(let i=0;i<chems.length;i++)for(let j=i+1;j<chems.length;j++){
+      const h1=chems[i].hazardClass||"NONE",h2=chems[j].hazardClass||"NONE";
+      if(COMPAT_MATRIX[h1]?.[h2]===false){
+        conflicts.push({rack,a:chems[i].name,b:chems[j].name,h1,h2});
+      }
+    }
+  });
+  if(conflicts.length===0)return(
+    <div style={{background:"#14532d22",border:"1px solid #4ade8044",padding:"8px 20px",display:"flex",alignItems:"center",gap:"10px"}}>
+      <div style={{width:"8px",height:"8px",borderRadius:"50%",background:"#4ade80",boxShadow:"0 0 8px #4ade80"}}/>
+      <span style={{color:"#4ade80",fontSize:"11px",fontWeight:"700"}}>✅ Safety Status: All racks SAFE — No compatibility conflicts detected</span>
+    </div>
+  );
+  return(
+    <div style={{background:"#7f1d1d33",border:"1px solid #ef4444",padding:"8px 20px",display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap",animation:"alertPulse 2s infinite"}}>
+      <div style={{width:"8px",height:"8px",borderRadius:"50%",background:"#ef4444",boxShadow:"0 0 8px #ef4444",animation:"pulse 1s infinite"}}/>
+      <span style={{color:"#ef4444",fontSize:"11px",fontWeight:"700"}}>⛔ SAFETY CONFLICT: {conflicts.length} rack{conflicts.length>1?"s":""} with incompatible chemicals!</span>
+      {conflicts.slice(0,2).map((c,i)=>(
+        <span key={i} style={{background:"#7f1d1d",color:"#fca5a5",fontSize:"10px",borderRadius:"4px",padding:"2px 8px"}}>
+          Rack {c.rack}: {c.a} × {c.b}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── DASHBOARD CARDS ───────────────────────────────────────────────────────────
+function DashCards({chemicals,logs,onTabChange}){
+  const ins=chemicals.filter(c=>c.status==="IN");
+  const low=ins.filter(c=>{const{closing}=buildLedger(c,logs);return closing<=c.lowStockThreshold;});
+  const exp=ins.filter(c=>c.expDate&&new Date(c.expDate)<new Date(Date.now()+30*864e5));
+  const expired=ins.filter(c=>c.expDate&&new Date(c.expDate)<new Date());
+  const bdtV=ins.filter(c=>c.currency==="BDT").reduce((s,c)=>{const{closing,currentWAC}=buildLedger(c,logs);return s+closing*currentWAC;},0);
+  const usdV=ins.filter(c=>c.currency==="USD").reduce((s,c)=>{const{closing,currentWAC}=buildLedger(c,logs);return s+closing*currentWAC;},0);
+
+  const cards=[
+    {label:"Total In Stock",value:ins.length,icon:"📦",color:"#38bdf8",sub:`${ins.filter(c=>c.type==="DYE").length} Dyes · ${ins.filter(c=>c.type==="CHEMICAL").length} Chems`,tab:"stock",
+     bg:"linear-gradient(135deg,#0c1a3a,#0f2440)"},
+    {label:"Low Stock 🔴",value:low.length,icon:"📉",color:low.length?"#ef4444":"#4ade80",
+     sub:low.length?low.slice(0,2).map(c=>c.name.split(" ")[0]).join(", "):"All levels OK",tab:"alerts",
+     bg:low.length?"linear-gradient(135deg,#1a0505,#2d0808)":"linear-gradient(135deg,#051a09,#082d0e)",
+     blink:low.length>0},
+    {label:"Expiring Soon 🟡",value:exp.length,icon:"📅",color:exp.length?"#f59e0b":"#4ade80",
+     sub:expired.length?`⛔ ${expired.length} EXPIRED!`:exp.length?exp.slice(0,2).map(c=>c.name.split(" ")[0]).join(", "):"No expiry warnings",
+     tab:"alerts",bg:exp.length?"linear-gradient(135deg,#1a1000,#2d1f00)":"linear-gradient(135deg,#051a09,#082d0e)",
+     blink:expired.length>0},
+    {label:"Value BDT ৳",value:`৳${(bdtV/1000).toFixed(1)}K`,icon:"💵",color:"#4ade80",
+     sub:"WAC-based valuation",tab:"stock",bg:"linear-gradient(135deg,#021a0a,#051f0e)"},
+    {label:"Value USD $",value:`$${usdV.toFixed(0)}`,icon:"💲",color:"#34d399",
+     sub:"WAC-based valuation",tab:"stock",bg:"linear-gradient(135deg,#021a12,#051f16)"},
+    {label:"Total Logs",value:logs.length,icon:"📜",color:"#a78bfa",
+     sub:"IN/OUT transactions",tab:"log",bg:"linear-gradient(135deg,#1a0a3a,#1e1040)"},
+  ];
+
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:"10px",padding:"14px 20px"}}>
+      {cards.map(c=>(
+        <div key={c.label} onClick={()=>onTabChange(c.tab)} className="card-hover"
+          style={{background:c.bg||"linear-gradient(135deg,#1e293b,#0f172a)",borderRadius:"12px",padding:"14px",
+            border:`1px solid ${c.color}44`,position:"relative",overflow:"hidden",
+            boxShadow:c.blink?`0 0 15px ${c.color}44`:`0 4px 15px ${c.color}11`,
+            animation:c.blink?"alertPulse 2s infinite":"none"}}>
+          <div style={{position:"absolute",top:"-8px",right:"-8px",width:"60px",height:"60px",borderRadius:"50%",background:c.color,opacity:0.06}}/>
+          <div style={{fontSize:"22px",marginBottom:"6px"}}>{c.icon}</div>
+          <div style={{fontSize:"24px",fontWeight:"900",color:c.color,lineHeight:1,textShadow:`0 0 15px ${c.color}55`}}>{c.value}</div>
+          <div style={{fontSize:"10px",color:"#94a3b8",marginTop:"4px",fontWeight:"700"}}>{c.label}</div>
+          <div style={{fontSize:"9px",color:"#475569",marginTop:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.sub}</div>
+          <div style={{fontSize:"8px",color:c.color+"66",marginTop:"4px"}}>▶ tap to view</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── TICKER ────────────────────────────────────────────────────────────────────
+function Ticker({logs,chemicals}){
+  const low=chemicals.filter(c=>c.status==="IN"&&c.amount<=c.lowStockThreshold);
+  const items=[
+    ...[...logs].reverse().slice(0,5).map(l=>({text:`${l.action==="IN"?"📥 IN":"📤 OUT"} · ${l.chemName} · ${l.action==="IN"?"+":"-"}${l.amount}${l.unit} · ${l.date}`,color:l.action==="IN"?"#4ade80":"#f87171"})),
+    ...low.map(c=>({text:`🔴 LOW STOCK ALERT · ${c.name} · ${c.amount}${c.unit} remaining`,color:"#ef4444"}))
+  ];
+  const[idx,setIdx]=useState(0);
+  useEffect(()=>{if(!items.length)return;const t=setInterval(()=>setIdx(i=>(i+1)%items.length),3500);return()=>clearInterval(t);},[items.length]);
+  if(!items.length)return null;
+  const item=items[idx%items.length];
+  return(
+    <div style={{background:"#0a1628",borderTop:"1px solid #1e293b",borderBottom:"1px solid #1e293b",padding:"7px 20px",display:"flex",alignItems:"center",gap:"12px"}}>
+      <span style={{color:"#ef4444",fontSize:"9px",letterSpacing:"1px",whiteSpace:"nowrap",animation:"pulse 1.5s infinite"}}>◉ LIVE</span>
+      <span style={{color:item.color,fontSize:"11px"}}>{item.text}</span>
+    </div>
+  );
+}
+
+// ── WAREHOUSE GRID ────────────────────────────────────────────────────────────
+function WarehouseGrid({chemicals,racks,logs,onSelectRack,selectedRack}){
+  const letters=[...new Set(racks.map(r=>r.split("-")[0]))].sort();
+  const getConflict=(chems)=>{
+    for(let i=0;i<chems.length;i++)for(let j=i+1;j<chems.length;j++){
+      const h1=chems[i].hazardClass||"NONE",h2=chems[j].hazardClass||"NONE";
+      if(COMPAT_MATRIX[h1]?.[h2]===false)return"DANGER";
+      if(COMPAT_MATRIX[h1]?.[h2]==="caution")return"CAUTION";
+    }
+    return"OK";
+  };
+  return(
+    <div style={{padding:"14px 20px"}}>
+      <div style={{overflowX:"auto"}}>
+        <div style={{display:"flex",gap:"10px",minWidth:"fit-content"}}>
+          {letters.map(lt=>{
+            const rr=racks.filter(r=>r.startsWith(lt+"-")).sort();
+            return(
+              <div key={lt} style={{display:"flex",flexDirection:"column",gap:"7px"}}>
+                <div style={{textAlign:"center",fontSize:"10px",color:"#38bdf8",fontWeight:"700",letterSpacing:"2px",padding:"3px 0",borderBottom:"1px solid #1e293b"}}>ROW {lt}</div>
+                {rr.map(rack=>{
+                  const chems=chemicals.filter(x=>x.rack===rack&&x.status==="IN");
+                  const sel=selectedRack===rack;
+                  const conflict=getConflict(chems);
+                  const first=chems[0];
+                  const haz=HAZARD_CLASSES[first?.hazardClass||"NONE"];
+                  const hasLow=chems.some(c=>{const{closing}=buildLedger(c,logs);return closing<=c.lowStockThreshold;});
+                  const hasExp=chems.some(c=>c.expDate&&new Date(c.expDate)<new Date(Date.now()+30*864e5));
+                  const hasExpired=chems.some(c=>c.expDate&&new Date(c.expDate)<new Date());
+                  const bc=sel?"#38bdf8":conflict==="DANGER"?"#ef4444":conflict==="CAUTION"?"#f59e0b":chems.length?haz.color+"66":"#1e3a5f";
+                  const bg=conflict==="DANGER"?"linear-gradient(135deg,#2d0808,#1a0505)":conflict==="CAUTION"?"linear-gradient(135deg,#2d1f00,#1a1000)":chems.length?`linear-gradient(135deg,${haz.color}22,${haz.color}08)`:"#0a1628";
+                  return(
+                    <div key={rack} onClick={()=>onSelectRack(sel?null:rack)} className="rack-item"
+                      style={{width:"105px",minHeight:"88px",borderRadius:"10px",cursor:"pointer",
+                        border:`2px ${chems.length?"solid":"dashed"} ${bc}`,background:bg,
+                        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                        gap:"2px",position:"relative",padding:"4px",
+                        boxShadow:sel?`0 0 20px #38bdf855`:conflict==="DANGER"?`0 0 15px #ef444433`:"none"}}>
+                      <div style={{position:"absolute",top:"3px",left:"6px",fontSize:"9px",color:"#475569"}}>{rack}</div>
+                      <div style={{position:"absolute",top:"3px",right:"5px",fontSize:"9px"}}>
+                        {conflict==="DANGER"?"⛔":conflict==="CAUTION"?"⚠️":hasExpired?"💀":hasLow?"🔴":hasExp?"🟡":""}
+                      </div>
+                      {chems.length>0?(
+                        chems.length===1?(
+                          <>
+                            <div style={{fontSize:"18px"}}>{haz.icon}</div>
+                            <div style={{fontSize:"7px",color:sel?"#38bdf8":"#e2e8f0",fontWeight:"800",textAlign:"center",padding:"0 4px",lineHeight:"1.3",maxWidth:"95px",overflow:"hidden"}}>
+                              {first.name.length>16?first.name.slice(0,15)+"…":first.name}
+                            </div>
+                            <div style={{fontSize:"8px",color:haz.color,fontWeight:"700"}}>{first.amount}{first.unit}</div>
+                            <div style={{fontSize:"7px",background:haz.color+"33",color:haz.color,borderRadius:"3px",padding:"1px 4px"}}>{haz.short}</div>
+                          </>
+                        ):(
+                          <>
+                            <div style={{fontSize:"11px",color:"#fbbf24",fontWeight:"800"}}>{chems.length} items</div>
+                            {chems.slice(0,3).map((c,i)=>{
+                              const h=HAZARD_CLASSES[c.hazardClass||"NONE"];
+                              return(<div key={i} style={{fontSize:"7px",color:h.color,textAlign:"center",overflow:"hidden",maxWidth:"95px",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{h.icon} {c.name.slice(0,10)}</div>);
+                            })}
+                          </>
+                        )
+                      ):(
+                        <div style={{fontSize:"9px",color:"#1e3a5f"}}>EMPTY</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Legend */}
+      <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginTop:"12px",paddingTop:"10px",borderTop:"1px solid #1e293b",fontSize:"10px"}}>
+        {Object.entries(HAZARD_CLASSES).map(([k,v])=>(
+          <div key={k} style={{display:"flex",alignItems:"center",gap:"3px",color:"#94a3b8"}}>
+            <span style={{width:"8px",height:"8px",borderRadius:"2px",background:v.color,display:"inline-block"}}/>
+            {v.icon} {v.label.split(" ")[0]}
+          </div>
+        ))}
+        <span style={{color:"#ef4444"}}>⛔ Conflict</span>
+        <span style={{color:"#f59e0b"}}>⚠️ Caution</span>
+        <span style={{color:"#ef4444"}}>🔴 Low</span>
+        <span style={{color:"#f59e0b"}}>🟡 Expiring</span>
+        <span style={{color:"#ef4444"}}>💀 Expired</span>
+      </div>
+    </div>
+  );
+}
+
+// ── STOCK LEDGER ──────────────────────────────────────────────────────────────
+function StockLedger({chemicals,logs,onEdit,onOut}){
+  const[search,setSearch]=useState("");
+  const[fType,setFType]=useState("ALL");
+  const[expanded,setExpanded]=useState(null);
+  const filtered=chemicals.filter(c=>
+    (fType==="ALL"||c.type===fType||(fType==="LOW"&&c.amount<=c.lowStockThreshold)||(fType==="EXP"&&c.expDate&&new Date(c.expDate)<new Date(Date.now()+30*864e5)))&&
+    (c.name?.toLowerCase().includes(search.toLowerCase())||(c.code||"").toLowerCase().includes(search.toLowerCase()))
+  );
+  const cols=[
+    {label:"Code",get:r=>r.code||"—"},{label:"Name",get:r=>r.name},{label:"Unit",get:r=>r.unit},
+    {label:"Opening",get:r=>`${r.openingBalance||0}`},
+    {label:"Total IN",get:r=>`+${logs.filter(l=>String(l.chemId)===String(r.id)&&l.action==="IN").reduce((s,l)=>s+Number(l.amount),0)}`},
+    {label:"Total OUT",get:r=>`-${logs.filter(l=>String(l.chemId)===String(r.id)&&l.action==="OUT").reduce((s,l)=>s+Number(l.amount),0)}`},
+    {label:"Closing Bal.",get:r=>`${buildLedger(r,logs).closing} ${r.unit}`},
+    {label:"WAC",get:r=>`${fmtCur(buildLedger(r,logs).currentWAC,r.currency)}/${r.unit}`},
+    {label:"Total Value",get:r=>{const{closing,currentWAC}=buildLedger(r,logs);return fmtCur(closing*currentWAC,r.currency);}},
+    {label:"Hazard",get:r=>HAZARD_CLASSES[r.hazardClass||"NONE"]?.label||"—"},
+    {label:"Rack",get:r=>r.rack||"—"},
+  ];
+  return(
+    <div style={{padding:"12px 20px"}}>
+      <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap",alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name/code…"
+          autoComplete="off" spellCheck="false"
+          style={{flex:1,minWidth:"130px",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px"}}/>
+        {["ALL","DYE","CHEMICAL","LOW","EXP"].map(f=>(
+          <button key={f} onClick={()=>setFType(f)} className="btn-hover"
+            style={{padding:"6px 12px",borderRadius:"7px",border:"none",cursor:"pointer",fontSize:"10px",
+              background:fType===f?"#38bdf8":"#1e293b",color:fType===f?"#0f172a":"#94a3b8",fontWeight:fType===f?"700":"400"}}>
+            {f==="LOW"?"🔴LOW":f==="EXP"?"🟡EXP":f}
+          </button>
+        ))}
+        <button onClick={()=>exportCSV(filtered,`stock_${new Date().toISOString().split("T")[0]}.csv`,cols)}
+          className="btn-hover" style={{padding:"6px 12px",borderRadius:"7px",border:"none",cursor:"pointer",fontSize:"10px",background:"#166534",color:"#4ade80",marginLeft:"auto"}}>
+          📊 Excel
+        </button>
+        <button onClick={()=>{
+          const w=window.open("","_blank");
+          const rows=filtered.map(r=>`<tr>${cols.map(c=>`<td>${c.get(r)}</td>`).join("")}</tr>`).join("");
+          w.document.write(`<html><head><style>body{font-family:monospace;font-size:11px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#1e293b;color:#fff}</style></head><body><h3>ChemStore Pro — Stock Ledger</h3><table><thead><tr>${cols.map(c=>`<th>${c.label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></body></html>`);
+          w.document.close();w.print();
+        }} className="btn-hover" style={{padding:"6px 12px",borderRadius:"7px",border:"none",cursor:"pointer",fontSize:"10px",background:"#1e3a5f",color:"#60a5fa"}}>
+          🖨️ Print
+        </button>
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px"}}>
+          <thead>
+            <tr style={{background:"#1e293b"}}>
+              <th style={{padding:"8px 5px",color:"#475569",width:"18px"}}/>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left",whiteSpace:"nowrap"}}>Code</th>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left",whiteSpace:"nowrap"}}>Name</th>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left"}}>Unit</th>
+              <th style={{padding:"8px",color:"#22d3ee",textAlign:"left",borderLeft:"2px solid #0f2e4a",whiteSpace:"nowrap"}}>Opening</th>
+              <th style={{padding:"8px",color:"#4ade80",textAlign:"left",whiteSpace:"nowrap"}}>+IN</th>
+              <th style={{padding:"8px",color:"#f87171",textAlign:"left",whiteSpace:"nowrap"}}>−OUT</th>
+              <th style={{padding:"8px",color:"#fbbf24",textAlign:"left",borderRight:"2px solid #0f2e4a",whiteSpace:"nowrap"}}>Closing</th>
+              <th style={{padding:"8px",color:"#a78bfa",textAlign:"left",whiteSpace:"nowrap"}}>WAC</th>
+              <th style={{padding:"8px",color:"#4ade80",textAlign:"left",whiteSpace:"nowrap"}}>Value</th>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left",whiteSpace:"nowrap"}}>Hazard</th>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left"}}>Rack</th>
+              <th style={{padding:"8px",color:"#94a3b8",textAlign:"left"}}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((c,i)=>{
+              const{opening,ledger,closing,currentWAC}=buildLedger(c,logs);
+              const totIn=ledger.filter(l=>l.action==="IN").reduce((s,l)=>s+l.qty,0);
+              const totOut=ledger.filter(l=>l.action==="OUT").reduce((s,l)=>s+l.qty,0);
+              const isLow=closing<=c.lowStockThreshold;
+              const isExp=c.expDate&&new Date(c.expDate)<new Date(Date.now()+30*864e5);
+              const isExpired=c.expDate&&new Date(c.expDate)<new Date();
+              const isEx=expanded===c.docId;
+              const haz=HAZARD_CLASSES[c.hazardClass||"NONE"];
+              const rowBg=isExpired?"#1a050522":isLow?"#1a050511":i%2===0?"#0a1628":"#0f172a";
+              return(
+                <Fragment key={c.docId||i}>
+                  <tr style={{background:rowBg,borderBottom:"1px solid #1e293b",cursor:"pointer",
+                    borderLeft:isExpired?"3px solid #ef4444":isLow?"3px solid #f97316":isExp?"3px solid #f59e0b":"3px solid transparent"}}
+                    onClick={()=>setExpanded(isEx?null:c.docId)}>
+                    <td style={{padding:"6px 5px",color:"#475569",textAlign:"center",fontSize:"9px"}}>{isEx?"▼":"▶"}</td>
+                    <td style={{padding:"6px 8px",color:"#38bdf8",whiteSpace:"nowrap"}}>{c.code}</td>
+                    <td style={{padding:"6px 8px",fontWeight:"700",whiteSpace:"nowrap"}}>
+                      {c.name}
+                      {isExpired&&<span style={{color:"#ef4444",fontSize:"9px",marginLeft:"4px"}}>💀EXP!</span>}
+                      {!isExpired&&isLow&&<span style={{color:"#f97316",fontSize:"9px",marginLeft:"4px"}}>🔴LOW</span>}
+                      {!isExpired&&!isLow&&isExp&&<span style={{color:"#f59e0b",fontSize:"9px",marginLeft:"4px"}}>🟡EXP</span>}
+                    </td>
+                    <td style={{padding:"6px 8px",color:"#94a3b8"}}>{c.unit}</td>
+                    <td style={{padding:"6px 8px",color:"#22d3ee",fontWeight:"700",borderLeft:"2px solid #0f2e4a"}}>{opening}</td>
+                    <td style={{padding:"6px 8px",color:"#4ade80",fontWeight:"700"}}>+{totIn}</td>
+                    <td style={{padding:"6px 8px",color:"#f87171",fontWeight:"700"}}>−{totOut}</td>
+                    <td style={{padding:"6px 8px",borderRight:"2px solid #0f2e4a"}}>
+                      <span style={{color:isLow?"#ef4444":"#fbbf24",fontWeight:"900"}}>{parseFloat(closing.toFixed(3))} {c.unit}</span>
+                    </td>
+                    <td style={{padding:"6px 8px",color:"#a78bfa",whiteSpace:"nowrap"}}>{fmtCur(currentWAC,c.currency)}</td>
+                    <td style={{padding:"6px 8px",color:"#4ade80",fontWeight:"700",whiteSpace:"nowrap"}}>{fmtCur(closing*currentWAC,c.currency)}</td>
+                    <td style={{padding:"6px 8px"}}>
+                      <span style={{background:haz.color+"33",color:haz.color,borderRadius:"4px",padding:"2px 6px",fontSize:"9px",whiteSpace:"nowrap"}}>
+                        {haz.icon} {haz.short}
+                      </span>
+                    </td>
+                    <td style={{padding:"6px 8px",color:"#38bdf8"}}>{c.rack}</td>
+                    <td style={{padding:"6px 8px"}}>
+                      <div style={{display:"flex",gap:"3px"}}>
+                        <button onClick={e=>{e.stopPropagation();onEdit(c);}} className="btn-hover"
+                          style={{background:"#1e40af",color:"#bfdbfe",border:"none",borderRadius:"5px",padding:"3px 8px",cursor:"pointer",fontSize:"9px",whiteSpace:"nowrap"}}>✏️ Edit</button>
+                        <button onClick={e=>{e.stopPropagation();onOut(c);}} className="btn-hover"
+                          style={{background:"#7f1d1d",color:"#fca5a5",border:"none",borderRadius:"5px",padding:"3px 8px",cursor:"pointer",fontSize:"9px",whiteSpace:"nowrap"}}>📤 OUT</button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isEx&&(
+                    <tr key={`x${c.docId}`}>
+                      <td colSpan={13} style={{padding:0,background:"#070f1e"}}>
+                        <div style={{padding:"10px 16px",borderBottom:"1px solid #1e3a5f",animation:"fadeIn .3s ease"}}>
+                          <div style={{color:"#38bdf8",fontSize:"10px",fontWeight:"700",marginBottom:"8px"}}>
+                            📋 LEDGER — {c.name} (WAC: {fmtCur(currentWAC,c.currency)}/{c.unit})
+                          </div>
+                          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"9px"}}>
+                            <thead><tr>{["Date","Action","Qty","Price/Unit","WAC After","Before Bal.","After Bal.","By","Note"].map(h=>(
+                              <th key={h} style={{padding:"4px 7px",color:"#64748b",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
+                            ))}</tr></thead>
+                            <tbody>
+                              <tr style={{background:"#0e2236"}}>
+                                <td style={{padding:"4px 7px",color:"#475569"}}>—</td>
+                                <td colSpan={2} style={{padding:"4px 7px",color:"#22d3ee",fontWeight:"700"}}>📂 OPENING</td>
+                                <td colSpan={3}/>
+                                <td style={{padding:"4px 7px",color:"#22d3ee",fontWeight:"900"}}>{opening} {c.unit}</td>
+                                <td colSpan={2}/>
+                              </tr>
+                              {ledger.map((l,li)=>(
+                                <tr key={l.docId||li} style={{background:li%2===0?"#0a1628":"transparent"}}>
+                                  <td style={{padding:"4px 7px",color:"#64748b"}}>{l.date}</td>
+                                  <td style={{padding:"4px 7px"}}>
+                                    <span style={{background:l.action==="IN"?"#15803d33":"#dc262633",color:l.action==="IN"?"#4ade80":"#f87171",borderRadius:"3px",padding:"1px 5px",fontWeight:"700"}}>{l.action}</span>
+                                  </td>
+                                  <td style={{padding:"4px 7px",color:l.action==="IN"?"#4ade80":"#f87171",fontWeight:"700"}}>{l.action==="IN"?"+":"-"}{l.qty} {c.unit}</td>
+                                  <td style={{padding:"4px 7px",color:"#94a3b8"}}>{l.pricePerUnit?fmtCur(l.pricePerUnit,c.currency):"—"}</td>
+                                  <td style={{padding:"4px 7px",color:"#a78bfa"}}>{fmtCur(l.wacAtTime||currentWAC,c.currency)}</td>
+                                  <td style={{padding:"4px 7px",color:"#94a3b8"}}>{l.before} {c.unit}</td>
+                                  <td style={{padding:"4px 7px",color:"#fbbf24",fontWeight:"700"}}>{l.after} {c.unit}</td>
+                                  <td style={{padding:"4px 7px",color:"#64748b"}}>{l.by||"—"}</td>
+                                  <td style={{padding:"4px 7px",color:"#475569"}}>{l.note||"—"}</td>
+                                </tr>
+                              ))}
+                              <tr style={{borderTop:"2px solid #1e3a5f"}}>
+                                <td style={{padding:"6px 7px",color:"#475569"}}>—</td>
+                                <td colSpan={2} style={{padding:"6px 7px",color:"#fbbf24",fontWeight:"700"}}>🔒 CLOSING</td>
+                                <td colSpan={3}/>
+                                <td style={{padding:"6px 7px",color:isLow?"#ef4444":"#fbbf24",fontWeight:"900",fontSize:"11px"}}>{parseFloat(closing.toFixed(3))} {c.unit}</td>
+                                <td colSpan={2} style={{padding:"6px 7px",color:"#4ade80",fontSize:"9px"}}>Value: {fmtCur(closing*currentWAC,c.currency)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+        {filtered.length===0&&<div style={{textAlign:"center",color:"#475569",padding:"24px"}}>No results found</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── LOG TABLE ─────────────────────────────────────────────────────────────────
+function LogTable({logs,onDelete}){
+  const[filter,setFilter]=useState("ALL");
+  const[search,setSearch]=useState("");
+  const filtered=[...logs].filter(l=>(filter==="ALL"||l.action===filter)&&((l.chemName||"").toLowerCase().includes(search.toLowerCase())||(l.chemCode||"").toLowerCase().includes(search.toLowerCase()))).reverse();
+  return(
+    <div style={{padding:"12px 20px"}}>
+      <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap",alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
+          autoComplete="off" spellCheck="false"
+          style={{flex:1,minWidth:"130px",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px"}}/>
+        {["ALL","IN","OUT"].map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} className="btn-hover"
+            style={{padding:"6px 12px",borderRadius:"7px",border:"none",cursor:"pointer",fontSize:"10px",background:filter===f?"#38bdf8":"#1e293b",color:filter===f?"#0f172a":"#94a3b8"}}>{f}</button>
+        ))}
+        <div style={{marginLeft:"auto",display:"flex",gap:"6px"}}>
+          <button onClick={()=>exportCSV(filtered,`logs_${new Date().toISOString().split("T")[0]}.csv`,[
+            {label:"Date",get:r=>r.date},{label:"Code",get:r=>r.chemCode||"—"},{label:"Name",get:r=>r.chemName},
+            {label:"Action",get:r=>r.action},{label:"Qty",get:r=>`${r.action==="IN"?"+":"-"}${r.amount} ${r.unit}`},
+            {label:"Price/Unit",get:r=>r.pricePerUnit||"—"},{label:"By",get:r=>r.by||"—"},{label:"Note",get:r=>r.note||"—"}
+          ])} className="btn-hover" style={{padding:"6px 12px",borderRadius:"7px",border:"none",cursor:"pointer",fontSize:"10px",background:"#166534",color:"#4ade80"}}>📊 Excel</button>
+        </div>
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px"}}>
+          <thead>
+            <tr style={{background:"#1e293b"}}>
+              {["Date","Code","Name","Action","Qty","Price/Unit","By","Note",""].map(h=>(
+                <th key={h} style={{padding:"8px",color:"#94a3b8",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((l,i)=>(
+              <tr key={l.docId||i} style={{background:i%2===0?"#0a1628":"#0f172a",borderBottom:"1px solid #1e293b"}}>
+                <td style={{padding:"7px 8px",color:"#94a3b8",whiteSpace:"nowrap"}}>{l.date}</td>
+                <td style={{padding:"7px 8px",color:"#38bdf8"}}>{l.chemCode||"—"}</td>
+                <td style={{padding:"7px 8px",color:"#e2e8f0",fontWeight:"700",whiteSpace:"nowrap"}}>{l.chemName}</td>
+                <td style={{padding:"7px 8px"}}>
+                  <span style={{background:l.action==="IN"?"#15803d33":"#dc262633",color:l.action==="IN"?"#4ade80":"#f87171",borderRadius:"4px",padding:"2px 8px",fontWeight:"700",fontSize:"10px"}}>
+                    {l.action==="IN"?"📥 IN":"📤 OUT"}
+                  </span>
+                </td>
+                <td style={{padding:"7px 8px",color:l.action==="IN"?"#4ade80":"#f87171",fontWeight:"700"}}>{l.action==="IN"?"+":"-"}{l.amount} {l.unit}</td>
+                <td style={{padding:"7px 8px",color:"#a78bfa"}}>{l.pricePerUnit||"—"}</td>
+                <td style={{padding:"7px 8px",color:"#64748b"}}>{l.by||"—"}</td>
+                <td style={{padding:"7px 8px",color:"#64748b"}}>{l.note||"—"}</td>
+                <td style={{padding:"7px 8px"}}>
+                  <button onClick={()=>{if(window.confirm(`Delete log: ${l.action} ${l.amount}${l.unit} ${l.chemName}?`))onDelete(l);}}
+                    className="btn-hover" style={{background:"#7f1d1d",color:"#fca5a5",border:"none",borderRadius:"4px",padding:"2px 7px",cursor:"pointer",fontSize:"9px"}}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length===0&&<div style={{textAlign:"center",color:"#475569",padding:"24px"}}>No logs found</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── COMPATIBILITY CHART ───────────────────────────────────────────────────────
+function CompatChart({chemicals,racks,logs}){
+  const[mode,setMode]=useState("rack");
+  const keys=Object.keys(COMPAT_MATRIX);
+  const getRackStatus=chems=>{
+    for(let i=0;i<chems.length;i++)for(let j=i+1;j<chems.length;j++){
+      const h1=chems[i].hazardClass||"NONE",h2=chems[j].hazardClass||"NONE";
+      if(COMPAT_MATRIX[h1]?.[h2]===false)return"DANGER";
+      if(COMPAT_MATRIX[h1]?.[h2]==="caution")return"CAUTION";
+    }
+    return"OK";
+  };
+  const occupied=racks.map(r=>({rack:r,chems:chemicals.filter(c=>c.rack===r&&c.status==="IN")})).filter(r=>r.chems.length>0);
+  return(
+    <div style={{padding:"16px 20px"}}>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap",
+        background:"linear-gradient(135deg,#0f2440,#1e3a5f)",borderRadius:"12px",padding:"14px 18px",border:"1px solid #1e3a5f"}}>
+        <div>
+          <div style={{color:"#38bdf8",fontSize:"14px",fontWeight:"700",letterSpacing:"1px"}}>⚠️ Chemical Storage Compatibility</div>
+          <div style={{color:"#475569",fontSize:"10px",marginTop:"2px"}}>GHS/UN Chemical Segregation — CHEMEX Standard</div>
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:"6px"}}>
+          {[["rack","🏭 Live Racks"],["matrix","📊 Matrix"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setMode(v)} className="btn-hover"
+              style={{padding:"7px 14px",borderRadius:"8px",border:"none",cursor:"pointer",fontSize:"11px",fontWeight:"700",
+                background:mode===v?"#38bdf8":"#1e293b",color:mode===v?"#0f172a":"#94a3b8"}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
+        {[["#4ade80","#14532d","✅ Compatible"],["#fcd34d","#78350f","⚠️ Caution / SDS Check"],["#f87171","#7f1d1d","❌ BLOCKED — Never together"]].map(([color,bg,label])=>(
+          <div key={label} style={{display:"flex",alignItems:"center",gap:"7px",padding:"5px 10px",background:bg+"44",borderRadius:"7px",border:`1px solid ${color}44`}}>
+            <div style={{width:"12px",height:"12px",borderRadius:"2px",background:bg+"cc",border:`1px solid ${color}`}}/>
+            <span style={{color,fontSize:"10px"}}>{label}</span>
+          </div>
+        ))}
+      </div>
+      {mode==="rack"&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
+          {occupied.length===0&&<div style={{textAlign:"center",color:"#475569",padding:"30px",gridColumn:"1/-1"}}>No chemicals in racks yet</div>}
+          {occupied.map(({rack,chems})=>{
+            const st=getRackStatus(chems);
+            const bc=st==="DANGER"?"#ef4444":st==="CAUTION"?"#f59e0b":"#10b981";
+            const conflicts=[];
+            for(let i=0;i<chems.length;i++)for(let j=i+1;j<chems.length;j++){
+              const h1=chems[i].hazardClass||"NONE",h2=chems[j].hazardClass||"NONE";
+              if(COMPAT_MATRIX[h1]?.[h2]===false)conflicts.push(`${chems[i].name} × ${chems[j].name}`);
+            }
+            return(
+              <div key={rack} style={{background:st==="DANGER"?"#7f1d1d22":st==="CAUTION"?"#78350f22":"#14532d22",
+                border:`2px solid ${bc}55`,borderRadius:"12px",padding:"14px",
+                boxShadow:`0 4px 15px ${bc}22`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                    <div style={{width:"8px",height:"8px",borderRadius:"50%",background:bc,boxShadow:`0 0 8px ${bc}`}}/>
+                    <span style={{color:"#e2e8f0",fontWeight:"700",fontSize:"14px"}}>Rack {rack}</span>
+                    <span style={{color:"#64748b",fontSize:"10px"}}>{chems.length} item{chems.length>1?"s":""}</span>
+                  </div>
+                  <span style={{background:st==="DANGER"?"#7f1d1d":st==="CAUTION"?"#78350f":"#14532d",
+                    color:st==="DANGER"?"#fca5a5":st==="CAUTION"?"#fcd34d":"#4ade80",
+                    borderRadius:"6px",padding:"3px 10px",fontSize:"10px",fontWeight:"700",border:`1px solid ${bc}44`}}>
+                    {st==="DANGER"?"⛔ CONFLICT":st==="CAUTION"?"⚠️ CAUTION":"✅ SAFE"}
+                  </span>
+                </div>
+                {chems.map((c,ci)=>{
+                  const haz=HAZARD_CLASSES[c.hazardClass||"NONE"];
+                  const{closing}=buildLedger(c,logs);
+                  return(
+                    <div key={c.docId||ci} style={{display:"flex",alignItems:"center",gap:"8px",padding:"7px 10px",
+                      background:"#0f172a88",borderRadius:"7px",marginBottom:"5px",border:`1px solid ${haz.color}33`}}>
+                      <div style={{width:"30px",height:"30px",borderRadius:"6px",background:haz.color+"22",
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:"15px",flexShrink:0}}>{haz.icon}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:"14px",color:"#e2e8f0",fontWeight:"700",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                        <div style={{fontSize:"11px",color:haz.color}}>{haz.label} · {c.code}</div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:"11px",color:"#fbbf24",fontWeight:"700"}}>{parseFloat(closing.toFixed(3))}{c.unit}</div>
+                        <div style={{fontSize:"8px",color:"#475569"}}>{c.containerType}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {conflicts.map((cf,i)=>(
+                  <div key={i} style={{marginTop:"6px",padding:"6px 10px",background:"#7f1d1d33",borderRadius:"5px",border:"1px solid #ef444444",fontSize:"10px",color:"#fca5a5"}}>
+                    ⛔ {cf} — INCOMPATIBLE! Relocate.
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {mode==="matrix"&&(
+        <div style={{overflowX:"auto"}}>
+          <table style={{borderCollapse:"collapse",fontSize:"9px"}}>
+            <thead>
+              <tr>
+                <th style={{padding:"10px 12px",background:"#0f172a",color:"#475569",border:"1px solid #1e293b",fontSize:"9px"}}>↓ vs →</th>
+                {keys.map(k=>(
+                  <th key={k} style={{padding:"6px 4px",background:"var(--tbl-bg,#0f172a)",color:HAZARD_CLASSES[k].color,textAlign:"center",border:"1px solid #1e293b",minWidth:"65px"}}>
+                    <div style={{fontSize:"14px"}}>{HAZARD_CLASSES[k].icon}</div>
+                    <div style={{fontSize:"7px",lineHeight:"1.3",marginTop:"1px"}}>{HAZARD_CLASSES[k].label.split("(")[0].trim()}</div>
+                    <div style={{fontSize:"8px",color:HAZARD_CLASSES[k].color,fontWeight:"700"}}>({HAZARD_CLASSES[k].short})</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {keys.map((row,ri)=>(
+                <tr key={row} style={{background:ri%2===0?"#0a1628":"#0f172a"}}>
+                  <td style={{padding:"7px 12px",background:"#0f172a",color:HAZARD_CLASSES[row].color,border:"1px solid #1e293b",fontWeight:"700",whiteSpace:"nowrap",fontSize:"9px"}}>
+                    {HAZARD_CLASSES[row].icon} {HAZARD_CLASSES[row].label}
+                  </td>
+                  {keys.map(col=>{
+                    const v=COMPAT_MATRIX[row][col];
+                    const c=v===true?"#10b981":v===false?"#ef4444":"#f59e0b";
+                    return(<td key={col} style={{padding:"8px 4px",textAlign:"center",border:"1px solid #1e293b",background:c+"22",color:c,fontWeight:"900",fontSize:"12px"}}>
+                      {v===true?(row===col?"—":"✓"):v===false?"✗":"⚠"}
+                    </td>);
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ALERTS PANEL ──────────────────────────────────────────────────────────────
+function AlertsPanel({chemicals,logs}){
+  const low=chemicals.filter(c=>{const{closing}=buildLedger(c,logs);return c.status==="IN"&&closing<=c.lowStockThreshold;});
+  const exp=chemicals.filter(c=>c.status==="IN"&&c.expDate&&new Date(c.expDate)<new Date(Date.now()+30*864e5));
+  const expired=chemicals.filter(c=>c.status==="IN"&&c.expDate&&new Date(c.expDate)<new Date());
+  if(!low.length&&!exp.length&&!expired.length)return(
+    <div style={{padding:"30px",textAlign:"center",color:"#4ade80",fontSize:"14px",animation:"fadeIn .5s ease"}}>
+      ✅ All stocks healthy, no expiry warnings!
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 20px"}}>
+      {expired.length>0&&<>
+        <div style={{color:"#ef4444",fontSize:"12px",fontWeight:"700",marginBottom:"8px",letterSpacing:"1px",
+          padding:"8px 12px",background:"#7f1d1d33",borderRadius:"8px",border:"1px solid #ef444444",animation:"alertPulse 2s infinite"}}>
+          💀 EXPIRED CHEMICALS — {expired.length} item{expired.length>1?"s":""} past expiry date!
+        </div>
+        {expired.map(c=>(
+          <div key={c.docId} style={{background:"#7f1d1d33",border:"2px solid #ef4444",borderRadius:"8px",padding:"12px 14px",marginBottom:"6px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"6px"}}>
+            <div><div style={{color:"#fca5a5",fontWeight:"700",fontSize:"13px"}}>💀 {c.name}</div>
+            <div style={{color:"#94a3b8",fontSize:"9px"}}>{c.code} · Rack: {c.rack} · Expired: {c.expDate}</div></div>
+            <div style={{color:"#ef4444",fontWeight:"900",fontSize:"16px"}}>{c.amount} {c.unit}</div>
+          </div>
+        ))}
+      </>}
+      {low.length>0&&<>
+        <div style={{color:"#f97316",fontSize:"12px",fontWeight:"700",marginBottom:"8px",letterSpacing:"1px",marginTop:expired.length?"14px":"0"}}>
+          🔴 LOW STOCK ALERTS — {low.length} item{low.length>1?"s":""} below threshold
+        </div>
+        {low.map(c=>{const{closing}=buildLedger(c,logs);return(
+          <div key={c.docId} style={{background:"#7f1d1d22",border:"1px solid #ef444455",borderRadius:"8px",padding:"12px 14px",marginBottom:"6px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"6px"}}>
+            <div><div style={{color:"#e2e8f0",fontWeight:"700"}}>{c.name}</div>
+            <div style={{color:"#94a3b8",fontSize:"9px"}}>{c.code} · Rack: {c.rack} · Threshold: {c.lowStockThreshold} {c.unit}</div></div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:"#ef4444",fontWeight:"900",fontSize:"20px"}}>{parseFloat(closing.toFixed(3))} {c.unit}</div>
+              <div style={{color:"#94a3b8",fontSize:"9px"}}>Need: {parseFloat(Math.max(0,c.lowStockThreshold-closing).toFixed(3))} {c.unit} more</div>
+            </div>
+          </div>
+        );})}
+      </>}
+      {exp.filter(c=>!expired.includes(c)).length>0&&<>
+        <div style={{color:"#f59e0b",fontSize:"12px",fontWeight:"700",marginBottom:"8px",letterSpacing:"1px",marginTop:"14px"}}>
+          🟡 EXPIRING SOON (≤30 days)
+        </div>
+        {exp.filter(c=>!expired.includes(c)).map(c=>(
+          <div key={c.docId} style={{background:"#78350f22",border:"1px solid #f59e0b55",borderRadius:"8px",padding:"12px 14px",marginBottom:"6px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"6px"}}>
+            <div><div style={{color:"#e2e8f0",fontWeight:"700"}}>{c.name}</div>
+            <div style={{color:"#94a3b8",fontSize:"9px"}}>{c.code} · Lot: {c.lotNo||"—"} · Exp: {c.expDate}</div></div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:"#f59e0b",fontWeight:"900",fontSize:"14px"}}>Exp: {c.expDate}</div>
+              <div style={{color:"#94a3b8",fontSize:"9px"}}>{c.amount} {c.unit} remaining</div>
+            </div>
+          </div>
+        ))}
+      </>}
+    </div>
+  );
+}
+
+// ── PRODUCTION ISSUE MODULE ───────────────────────────────────────────────────
+function ProductionModule({chemicals,logs,onIssue}){
+  const[recipe,setRecipe]=useState([{chemId:"",chemName:"",doseGmL:"",unit:"g"}]);
+  const[liquorRatio,setLiquorRatio]=useState(10);
+  const[fabricKg,setFabricKg]=useState("");
+  const[result,setResult]=useState(null);
+  const[batchNo,setBatchNo]=useState(`BT-${new Date().toISOString().slice(0,10)}-001`);
+
+  const inStock=chemicals.filter(c=>c.status==="IN");
+
+  const addRecipeLine=()=>setRecipe(p=>[...p,{chemId:"",chemName:"",doseGmL:"",unit:"g"}]);
+  const removeRecipeLine=i=>setRecipe(p=>p.filter((_,idx)=>idx!==i));
+  const setLine=(i,k,v)=>setRecipe(p=>p.map((r,idx)=>idx===i?{...r,[k]:v}:r));
+
+  const calculate=()=>{
+    const fab=parseFloat(fabricKg);
+    const lr=parseFloat(liquorRatio);
+    if(!fab||isNaN(fab)||!lr||isNaN(lr)){alert("Please enter fabric weight and liquor ratio!");return;}
+    const totalLiquor=fab*lr; // liters
+    const lines=recipe.map(r=>{
+      const chem=inStock.find(c=>c.id===Number(r.chemId)||c.docId===r.chemId);
+      const dose=parseFloat(r.doseGmL)||0;
+      const totalGm=dose*totalLiquor;
+      const totalKg=totalGm/1000;
+      const{closing}=chem?buildLedger(chem,logs):{closing:0};
+      const sufficient=closing>=totalKg;
+      return{...r,chem,dose,totalLiquor,totalGm,totalKg,closing,sufficient};
+    }).filter(r=>r.chem);
+    setResult({lines,fabricKg:fab,liquorRatio:lr,totalLiquor,batchNo});
+  };
+
+  const issueAll=async()=>{
+    if(!result)return;
+    const insufficient=result.lines.filter(r=>!r.sufficient);
+    if(insufficient.length>0){
+      alert(`⛔ Insufficient stock:\n${insufficient.map(r=>`• ${r.chem.name}: Need ${r.totalKg.toFixed(2)}kg, Have ${r.closing}kg`).join("\n")}`);
+      return;
+    }
+    if(!window.confirm(`Issue chemicals for Batch ${result.batchNo}?\n\n${result.lines.map(r=>`• ${r.chem.name}: ${r.totalKg.toFixed(3)} kg`).join("\n")}`))return;
+    for(const r of result.lines){
+      await onIssue(r.chem,r.totalKg,result.batchNo);
+    }
+    alert("✅ Production issue complete!");
+    setResult(null);
+    setRecipe([{chemId:"",chemName:"",doseGmL:"",unit:"g"}]);
+    setFabricKg("");
+  };
+
+  return(
+    <div style={{padding:"14px 20px"}}>
+      <div style={{background:"linear-gradient(135deg,#0f2440,#1e3a5f)",borderRadius:"12px",padding:"16px 18px",border:"1px solid #1e3a5f",marginBottom:"14px"}}>
+        <div style={{color:"#38bdf8",fontSize:"14px",fontWeight:"700",letterSpacing:"1px",marginBottom:"4px"}}>🧪 Production Issue Module</div>
+        <div style={{color:"#475569",fontSize:"10px"}}>Enter dyeing recipe → Calculate chemical requirements → Issue from stock</div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"14px"}}>
+        {[["Batch No",batchNo,setBatchNo,"text"],["Fabric Weight (kg)",fabricKg,setFabricKg,"number"],["Liquor Ratio (L/kg)",liquorRatio,(v)=>setLiquorRatio(v),"number"]].map(([label,val,setter,type])=>(
+          <div key={label}>
+            <div style={{color:"#64748b",fontSize:"9px",marginBottom:"4px"}}>{label}</div>
+            <input type={type} value={val} onChange={e=>setter(e.target.value)}
+              autoComplete="off" spellCheck="false"
+              style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+          </div>
+        ))}
+      </div>
+
+      <div style={{color:"#94a3b8",fontSize:"11px",fontWeight:"700",marginBottom:"8px"}}>
+        📋 Recipe (dose in g/L of liquor):
+      </div>
+
+      {recipe.map((r,i)=>(
+        <div key={i} style={{display:"flex",gap:"6px",marginBottom:"7px",alignItems:"center",background:"#0f172a",borderRadius:"8px",padding:"8px 10px",border:"1px solid #1e293b"}}>
+          <div style={{flex:2,minWidth:0}}>
+            <div style={{color:"#64748b",fontSize:"8px",marginBottom:"3px"}}>Chemical</div>
+            <select value={r.chemId} onChange={e=>{
+              const c=inStock.find(x=>x.docId===e.target.value||String(x.id)===e.target.value);
+              setLine(i,"chemId",e.target.value);
+              setLine(i,"chemName",c?.name||"");
+            }} style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"6px",padding:"7px 8px",color:"#e2e8f0",fontSize:"11px"}}>
+              <option value="">Select chemical…</option>
+              {inStock.map(c=>(
+                <option key={c.docId||c.id} value={c.docId||String(c.id)}>{c.name} ({c.code}) — {c.amount}{c.unit}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{width:"90px"}}>
+            <div style={{color:"#64748b",fontSize:"8px",marginBottom:"3px"}}>Dose (g/L)</div>
+            <input type="number" value={r.doseGmL} onChange={e=>setLine(i,"doseGmL",e.target.value)}
+              autoComplete="off"
+              style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"6px",padding:"7px 8px",color:"#e2e8f0",fontSize:"12px"}}/>
+          </div>
+          <button onClick={()=>removeRecipeLine(i)} style={{background:"#7f1d1d",color:"#fca5a5",border:"none",borderRadius:"5px",padding:"6px 10px",cursor:"pointer",fontSize:"12px",marginTop:"14px"}}>✕</button>
+        </div>
+      ))}
+
+      <div style={{display:"flex",gap:"8px",marginTop:"10px",marginBottom:"16px"}}>
+        <button onClick={addRecipeLine} className="btn-hover"
+          style={{background:"#1e293b",color:"#94a3b8",border:"1px solid #334155",borderRadius:"7px",padding:"8px 14px",cursor:"pointer",fontSize:"11px"}}>
+          + Add Chemical
+        </button>
+        <button onClick={calculate} className="btn-hover"
+          style={{background:"linear-gradient(135deg,#0284c7,#0369a1)",color:"#fff",border:"none",borderRadius:"7px",padding:"8px 18px",cursor:"pointer",fontSize:"11px",fontWeight:"700"}}>
+          🧮 Calculate
+        </button>
+      </div>
+
+      {result&&(
+        <div style={{background:"#0f172a",borderRadius:"12px",padding:"16px",border:"1px solid #1e3a5f",animation:"fadeIn .4s ease"}}>
+          <div style={{color:"#38bdf8",fontSize:"13px",fontWeight:"700",marginBottom:"12px"}}>
+            📊 Calculation Result — {result.batchNo} | Fabric: {result.fabricKg}kg | Liquor: {result.totalLiquor.toFixed(0)}L
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px",marginBottom:"14px"}}>
+            <thead>
+              <tr style={{background:"#1e293b"}}>
+                {["Chemical","Dose g/L","Total Volume L","Need (g)","Need (kg)","Stock","Status"].map(h=>(
+                  <th key={h} style={{padding:"7px 8px",color:"#94a3b8",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {result.lines.map((r,i)=>(
+                <tr key={i} style={{background:i%2===0?"#0a1628":"#0f172a",borderBottom:"1px solid #1e293b"}}>
+                  <td style={{padding:"7px 8px",color:"#e2e8f0",fontWeight:"700"}}>{r.chem.name}</td>
+                  <td style={{padding:"7px 8px",color:"#94a3b8"}}>{r.dose} g/L</td>
+                  <td style={{padding:"7px 8px",color:"#94a3b8"}}>{r.totalLiquor.toFixed(1)} L</td>
+                  <td style={{padding:"7px 8px",color:"#fbbf24",fontWeight:"700"}}>{r.totalGm.toFixed(1)} g</td>
+                  <td style={{padding:"7px 8px",color:"#38bdf8",fontWeight:"700"}}>{r.totalKg.toFixed(3)} kg</td>
+                  <td style={{padding:"7px 8px",color:"#94a3b8"}}>{r.closing} {r.chem.unit}</td>
+                  <td style={{padding:"7px 8px"}}>
+                    <span style={{background:r.sufficient?"#14532d":"#7f1d1d",color:r.sufficient?"#4ade80":"#fca5a5",borderRadius:"4px",padding:"2px 8px",fontSize:"10px",fontWeight:"700"}}>
+                      {r.sufficient?"✅ OK":"⛔ SHORT"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={issueAll} className="btn-hover"
+            style={{background:result.lines.every(r=>r.sufficient)?"linear-gradient(135deg,#166534,#15803d)":"#450a0a",
+              color:result.lines.every(r=>r.sufficient)?"#4ade80":"#fca5a5",
+              border:"none",borderRadius:"8px",padding:"12px 24px",cursor:"pointer",fontSize:"12px",fontWeight:"700",width:"100%"}}>
+            {result.lines.every(r=>r.sufficient)?"📤 Issue All from Stock":"⛔ Cannot Issue — Insufficient Stock"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── CONFLICT MODAL ────────────────────────────────────────────────────────────
+function ConflictModal({conflicts,safeRacks,onClose,onForce}){
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"12px"}}>
+      <div style={{background:"#1a0505",border:"3px solid #ef4444",borderRadius:"16px",padding:"24px",width:"min(520px,96vw)",animation:"fadeIn .3s ease",boxShadow:"0 0 60px #ef444433"}}>
+        <div style={{fontSize:"32px",textAlign:"center",marginBottom:"12px",animation:"alertPulse 1s infinite"}}>⛔</div>
+        <div style={{color:"#ef4444",fontSize:"18px",fontWeight:"900",textAlign:"center",marginBottom:"8px",letterSpacing:"1px"}}>
+          SAFETY CONFLICT DETECTED
+        </div>
+        <div style={{color:"#fca5a5",fontSize:"12px",textAlign:"center",marginBottom:"20px"}}>
+          The following chemicals are INCOMPATIBLE and must NEVER be stored together!
+        </div>
+        {conflicts.map((cf,i)=>(
+          <div key={i} style={{background:"#7f1d1d",borderRadius:"8px",padding:"12px 14px",marginBottom:"8px",border:"1px solid #ef4444"}}>
+            <div style={{color:"#fca5a5",fontSize:"11px",fontWeight:"700"}}>
+              {HAZARD_CLASSES[cf.h1]?.icon} {cf.a} ({cf.h1})
+              <span style={{color:"#ef4444",margin:"0 8px",fontSize:"14px"}}>✗</span>
+              {HAZARD_CLASSES[cf.h2]?.icon} {cf.b} ({cf.h2})
+            </div>
+            <div style={{color:"#94a3b8",fontSize:"9px",marginTop:"4px"}}>
+              {cf.reason||"These chemical classes are incompatible — risk of fire, explosion or toxic reaction"}
+            </div>
+          </div>
+        ))}
+        {safeRacks.length>0&&(
+          <div style={{background:"#14532d33",border:"1px solid #4ade8044",borderRadius:"8px",padding:"10px 14px",marginBottom:"16px"}}>
+            <div style={{color:"#4ade80",fontSize:"10px",fontWeight:"700",marginBottom:"4px"}}>✅ Safe racks available:</div>
+            <div style={{color:"#4ade80",fontSize:"11px"}}>{safeRacks.slice(0,8).join(" · ")}</div>
+          </div>
+        )}
+        <div style={{display:"flex",gap:"10px"}}>
+          <button onClick={onClose} style={{flex:2,background:"linear-gradient(135deg,#0284c7,#0369a1)",color:"#fff",border:"none",borderRadius:"8px",padding:"12px",cursor:"pointer",fontSize:"12px",fontWeight:"700"}}>
+            ← Choose Different Rack
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ADD/EDIT MODAL ────────────────────────────────────────────────────────────
+function ChemModal({chem,chemicals,racks,logs,onSave,onLog,onClose,onAddRack}){
+  const isEdit=!!chem.docId;
+  const isOutMode=chem._outMode===true;
+  const today=new Date().toISOString().split("T")[0];
+  const formRef=useRef(null);
+
+  const[form,setForm]=useState({
+    docId:chem.docId||null,
+    id:chem.id||genId(),
+    code:chem.code||"",name:chem.name||"",type:chem.type||"CHEMICAL",
+    hazardClass:chem.hazardClass||"NONE",
+    hazards:chem.hazards||["NONE"],
+    lotNo:chem.lotNo||"",expDate:chem.expDate||"",
+    openingBalance:chem.openingBalance??0,
+    amount:chem.amount??0,unit:chem.unit||"kg",
+    pricePerUnit:chem.pricePerUnit??0,currency:chem.currency||"BDT",
+    supplier:chem.supplier||"",containerType:chem.containerType||"Drum",
+    containerCapacity:chem.containerCapacity??0,containerCount:chem.containerCount??0,
+    rack:chem.rack||racks[0]||"A-01",dateIn:chem.dateIn||today,
+    dateOut:chem.dateOut||"",status:isOutMode?"OUT":chem.status||"IN",
+    lowStockThreshold:chem.lowStockThreshold??50,
+    outAmount:0,
+  });
+  const[newRack,setNewRack]=useState("");
+  const[showNewRack,setShowNewRack]=useState(false);
+  const[conflict,setConflict]=useState(null);
+  const[qs,setQs]=useState(chem.name||"");
+  const set=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  // Quick fill for OUT mode
+  const qsFill=(val)=>{
+    setQs(val);
+    const f=chemicals.find(c=>c.name?.toLowerCase().includes(val.toLowerCase())||c.code?.toLowerCase()===val.toLowerCase());
+    if(f)setForm(p=>({...p,...f,docId:f.docId,status:"OUT",outAmount:0,dateOut:today}));
+  };
+
+  // Check rack compatibility
+  const primary=form.hazardClass||"NONE";
+  const sameRack=chemicals.filter(c=>c.rack===form.rack&&c.status==="IN"&&c.docId!==form.docId);
+  const hardConflicts=sameRack.filter(c=>COMPAT_MATRIX[primary]?.[c.hazardClass||"NONE"]===false);
+  const cautionList=sameRack.filter(c=>COMPAT_MATRIX[primary]?.[c.hazardClass||"NONE"]==="caution");
+  const blocked=hardConflicts.length>0&&(form.status==="IN"||isOutMode===false);
+  const safeRacks=racks.filter(r=>{
+    const occ=chemicals.filter(c=>c.rack===r&&c.status==="IN"&&c.docId!==form.docId);
+    return occ.every(c=>COMPAT_MATRIX[primary]?.[c.hazardClass||"NONE"]!==false);
+  });
+
+  const handleSave=()=>{
+    // Collect DOM input values
+    const finalForm={...form};
+    if(formRef.current){
+      formRef.current.querySelectorAll("input[data-key]").forEach(inp=>{
+        const k=inp.getAttribute("data-key");
+        const isNum=inp.getAttribute("data-type")==="number";
+        if(k)finalForm[k]=isNum?(inp.value===""?0:Number(inp.value)):inp.value;
+      });
+    }
+    finalForm.docId=form.docId;
+
+    if(isOutMode){
+      // OUT mode: just add log, don't update chemical record
+      const outAmt=Number(finalForm.outAmount)||0;
+      if(outAmt<=0){alert("Please enter amount to issue!");return;}
+      const{closing}=buildLedger(chem,logs);
+      if(outAmt>closing){alert(`⛔ Insufficient stock!\nAvailable: ${closing} ${chem.unit}\nRequested: ${outAmt} ${chem.unit}`);return;}
+      onLog({id:genId(),date:finalForm.dateOut||today,chemId:chem.id,chemCode:chem.code,
+        chemName:chem.name,action:"OUT",amount:outAmt,unit:chem.unit,
+        containerCount:0,lotNo:chem.lotNo||"",note:finalForm.outNote||"Stock issued",by:"Store",
+        pricePerUnit:finalForm.pricePerUnit||chem.pricePerUnit});
+      onClose();
+      return;
+    }
+
+    // Check compatibility
+    if(blocked){
+      setConflict({
+        conflicts:hardConflicts.map(c=>({h1:primary,h2:c.hazardClass||"NONE",a:form.name||"New Item",b:c.name})),
+        safeRacks
+      });
+      return;
+    }
+
+    onSave(finalForm);
+    if(!isEdit){
+      onLog({id:genId(),date:finalForm.dateIn||today,chemId:finalForm.id,chemCode:finalForm.code,
+        chemName:finalForm.name,action:"IN",amount:Number(finalForm.amount),unit:finalForm.unit,
+        containerCount:Number(finalForm.containerCount),lotNo:finalForm.lotNo,
+        note:"Initial stock",by:"Store",pricePerUnit:finalForm.pricePerUnit});
+    }
+    onClose();
+  };
+
+  const inp=(label,k,type="text",full=false,color="")=>{
+    const isNum=type==="number";
+    const isDate=type==="date";
+    if(isDate)return(
+      <div style={{marginBottom:"10px",gridColumn:full?"1/-1":""}}>
+        <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>{label}</div>
+        <input type="date" value={form[k]||""} onChange={e=>set(k,e.target.value)}
+          style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+      </div>
+    );
+    return(
+      <div style={{marginBottom:"10px",gridColumn:full?"1/-1":""}}>
+        <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>{label}</div>
+        <input data-key={k} data-type={isNum?"number":"text"} type="text"
+          inputMode={isNum?"decimal":"text"} defaultValue={isNum?(form[k]||""):form[k]}
+          placeholder={isNum?"0":""} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+          onBlur={e=>{const v=e.target.value;set(k,isNum?(v===""?0:Number(v.replace(/[^0-9.]/g,""))):v);}}
+          style={{width:"100%",background:"#1e293b",border:`1px solid ${color||"#334155"}`,borderRadius:"7px",padding:"8px 10px",color:color||"#e2e8f0",fontSize:"14px",boxSizing:"border-box"}}/>
+      </div>
+    );
+  };
+
+  const sel=(label,k,opts,full=false)=>(
+    <div style={{marginBottom:"10px",gridColumn:full?"1/-1":""}}>
+      <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>{label}</div>
+      <select value={form[k]} onChange={e=>set(k,e.target.value)}
+        style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px"}}>
+        {opts.map(o=><option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
+      </select>
+    </div>
+  );
+
+  const modalTitle=isOutMode?"📤 ISSUE STOCK (OUT)":isEdit?`✏️ EDIT: ${chem.name}`:"➕ ADD CHEMICAL / DYE";
+
+  return(
+    <>
+      {conflict&&<ConflictModal conflicts={conflict.conflicts} safeRacks={conflict.safeRacks} onClose={()=>setConflict(null)}/>}
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"8px"}}
+        onClick={e=>e.target===e.currentTarget&&onClose()}>
+        <div ref={formRef} style={{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:"16px",padding:"22px",width:"min(600px,98vw)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 24px 80px #000a"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
+            <div style={{color:"#38bdf8",fontSize:"14px",fontWeight:"700",letterSpacing:"1px"}}>{modalTitle}</div>
+            <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:"20px"}}>✕</button>
+          </div>
+
+          {/* OUT MODE */}
+          {isOutMode&&(
+            <div>
+              <div style={{background:"#7f1d1d22",border:"1px solid #f8717144",borderRadius:"8px",padding:"12px",marginBottom:"14px"}}>
+                <div style={{color:"#f87171",fontWeight:"700",marginBottom:"4px"}}>📤 Issue: {chem.name}</div>
+                <div style={{color:"#94a3b8",fontSize:"10px"}}>Code: {chem.code} · Rack: {chem.rack} · Available: {buildLedger(chem,logs).closing} {chem.unit}</div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
+                <div style={{marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>AMOUNT TO ISSUE ({chem.unit})</div>
+                  <input type="text" inputMode="decimal" data-key="outAmount" data-type="number"
+                    defaultValue="" placeholder="0" autoComplete="off"
+                    onBlur={e=>set("outAmount",e.target.value===""?0:Number(e.target.value))}
+                    style={{width:"100%",background:"#1e293b",border:"1px solid #f87171",borderRadius:"7px",padding:"9px 10px",color:"#f87171",fontSize:"16px",boxSizing:"border-box",fontWeight:"700"}}/>
+                </div>
+                {inp("DATE OUT","dateOut","date")}
+                <div style={{gridColumn:"1/-1",marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>NOTE / PURPOSE</div>
+                  <input data-key="outNote" data-type="text" type="text" defaultValue=""
+                    placeholder="e.g. Batch #BT-001, Production use…" autoComplete="off" spellCheck="false"
+                    onBlur={e=>set("outNote",e.target.value)}
+                    style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"9px 10px",color:"#e2e8f0",fontSize:"14px",boxSizing:"border-box"}}/>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ADD / EDIT MODE */}
+          {!isOutMode&&(
+            <>
+              {!isEdit&&(
+                <div style={{marginBottom:"12px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"4px"}}>QUICK FILL (type name/code for OUT):</div>
+                  <input value={qs} onChange={e=>qsFill(e.target.value)} placeholder="Start typing name or code…"
+                    autoComplete="off" spellCheck="false"
+                    style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"9px 10px",color:"#e2e8f0",fontSize:"14px",boxSizing:"border-box"}}/>
+                </div>
+              )}
+
+              {blocked&&(
+                <div style={{background:"#450a0a",border:"2px solid #ef4444",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
+                  <div style={{color:"#fca5a5",fontWeight:"800",fontSize:"13px",marginBottom:"4px"}}>⛔ SAVE BLOCKED — INCOMPATIBLE RACK!</div>
+                  {hardConflicts.map(c=><div key={c.docId} style={{color:"#f87171",fontSize:"11px"}}>• {c.name} [{c.hazardClass}]</div>)}
+                  <div style={{color:"#fbbf24",fontSize:"10px",marginTop:"6px"}}>✅ Safe racks: {safeRacks.slice(0,6).join(" · ")}</div>
+                </div>
+              )}
+              {!blocked&&cautionList.length>0&&(
+                <div style={{background:"#451a03",border:"1px solid #f59e0b",borderRadius:"8px",padding:"8px 12px",marginBottom:"10px",color:"#fcd34d",fontSize:"10px"}}>
+                  ⚠️ CAUTION: {cautionList.map(c=>c.name).join(", ")} — Separate if possible
+                </div>
+              )}
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
+                {inp("CHEMICAL CODE","code")}
+                {inp("CHEMICAL / DYE NAME","name")}
+                {sel("TYPE","type",[{v:"CHEMICAL",l:"Chemical"},{v:"DYE",l:"Dye"}])}
+                {sel("STATUS","status",[{v:"IN",l:"📥 IN Stock"},{v:"OUT",l:"📤 OUT / Issued"}])}
+                {inp("LOT NUMBER","lotNo")}
+                {inp("EXPIRY DATE","expDate","date")}
+                {inp("OPENING BALANCE","openingBalance","number",true,"#22d3ee66")}
+
+                {/* HAZARD CLASS */}
+                <div style={{gridColumn:"1/-1",marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"5px"}}>HAZARD CLASS (GHS)</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+                    {Object.entries(HAZARD_CLASSES).map(([k,v])=>(
+                      <button key={k} onClick={()=>set("hazardClass",k)}
+                        style={{padding:"5px 10px",borderRadius:"6px",border:`1px solid ${form.hazardClass===k?v.color:"#334155"}`,cursor:"pointer",fontSize:"10px",
+                          background:form.hazardClass===k?v.color+"33":"#1e293b",color:form.hazardClass===k?v.color:"#64748b",display:"flex",alignItems:"center",gap:"4px"}}>
+                        {v.icon} {v.label.split("(")[0].trim()} <span style={{fontWeight:"700"}}>({v.short})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Amount + Unit */}
+                <div style={{marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>AMOUNT</div>
+                  <div style={{display:"flex",gap:"5px"}}>
+                    <input type="text" inputMode="decimal" data-key="amount" data-type="number"
+                      defaultValue={form.amount||""} placeholder="0" autoComplete="off"
+                      onBlur={e=>set("amount",e.target.value===""?0:Number(e.target.value))}
+                      style={{flex:1,background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"14px"}}/>
+                    <select value={form.unit} onChange={e=>set("unit",e.target.value)}
+                      style={{background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#38bdf8",fontSize:"13px"}}>
+                      {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                  {/* Unit conversion hint */}
+                  {(form.unit==="g"||form.unit==="mL")&&form.amount>0&&(
+                    <div style={{fontSize:"9px",color:"#475569",marginTop:"2px"}}>
+                      = {(form.amount/1000).toFixed(3)} {form.unit==="g"?"kg":"L"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Price + Currency + WAC hint */}
+                <div style={{marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>PRICE / {form.unit}</div>
+                  <div style={{display:"flex",gap:"5px"}}>
+                    <input type="text" inputMode="decimal" data-key="pricePerUnit" data-type="number"
+                      defaultValue={form.pricePerUnit||""} placeholder="0" autoComplete="off"
+                      onBlur={e=>set("pricePerUnit",e.target.value===""?0:Number(e.target.value))}
+                      style={{flex:1,background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"14px"}}/>
+                    <select value={form.currency} onChange={e=>set("currency",e.target.value)}
+                      style={{background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 10px",color:"#fbbf24",fontSize:"13px",fontWeight:"700"}}>
+                      {CURRENCIES.map(c=><option key={c.v} value={c.v}>{c.v} {c.sym}</option>)}
+                    </select>
+                  </div>
+                  {/* WAC preview for IN */}
+                  {!isEdit&&form.status==="IN"&&form.amount>0&&form.pricePerUnit>0&&(()=>{
+                    const existing=chemicals.find(c=>c.code===form.code&&c.status==="IN");
+                    if(existing){
+                      const{closing,currentWAC}=buildLedger(existing,logs);
+                      const newWAC=calcWAC(closing,currentWAC,form.amount,form.pricePerUnit);
+                      return(<div style={{fontSize:"9px",color:"#a78bfa",marginTop:"2px"}}>
+                        WAC: {fmtCur(currentWAC,form.currency)} → {fmtCur(newWAC,form.currency)}/{form.unit} (after this IN)
+                      </div>);
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                {inp("SUPPLIER","supplier",undefined,true)}
+                {sel("CONTAINER","containerType",CONTAINERS)}
+                {inp(`CAPACITY/${form.containerType} (${form.unit})`,"containerCapacity","number")}
+                {inp(`No. of ${form.containerType}s`,"containerCount","number")}
+                {inp(`LOW STOCK THRESHOLD (${form.unit})`,"lowStockThreshold","number",true)}
+
+                {/* Rack */}
+                <div style={{gridColumn:"1/-1",marginBottom:"10px"}}>
+                  <div style={{color:"#64748b",fontSize:"9px",marginBottom:"3px"}}>ROW / RACK</div>
+                  <div style={{display:"flex",gap:"6px"}}>
+                    <select value={form.rack} onChange={e=>set("rack",e.target.value)}
+                      style={{flex:1,background:"#1e293b",border:`1px solid ${blocked?"#ef4444":cautionList.length?"#f59e0b":"#334155"}`,borderRadius:"7px",padding:"8px 10px",color:"#e2e8f0",fontSize:"13px"}}>
+                      {racks.map(r=>{
+                        const occ=chemicals.filter(c=>c.rack===r&&c.status==="IN"&&c.docId!==form.docId);
+                        const blk=occ.some(c=>COMPAT_MATRIX[primary]?.[c.hazardClass||"NONE"]===false);
+                        const wrn=!blk&&occ.some(c=>COMPAT_MATRIX[primary]?.[c.hazardClass||"NONE"]==="caution");
+                        return<option key={r} value={r}>{r}{blk?" ⛔ BLOCKED":wrn?" ⚠️ Caution":occ.length?" ✅ Safe":""}</option>;
+                      })}
+                    </select>
+                    <button onClick={()=>setShowNewRack(v=>!v)}
+                      style={{background:"#1e293b",border:"1px solid #334155",borderRadius:"7px",padding:"8px 12px",cursor:"pointer",color:"#94a3b8",fontSize:"11px",whiteSpace:"nowrap"}}>+ Rack</button>
+                  </div>
+                  {showNewRack&&<div style={{display:"flex",gap:"6px",marginTop:"6px"}}>
+                    <input value={newRack} onChange={e=>setNewRack(e.target.value.toUpperCase())} placeholder="e.g. F-01"
+                      style={{flex:1,background:"#1e293b",border:"1px solid #334155",borderRadius:"6px",padding:"7px 10px",color:"#e2e8f0",fontSize:"13px"}}/>
+                    <button onClick={()=>{if(newRack.trim()){onAddRack(newRack.trim());set("rack",newRack.trim());setNewRack("");setShowNewRack(false);}}}
+                      style={{background:"#0284c7",color:"#fff",border:"none",borderRadius:"6px",padding:"7px 12px",cursor:"pointer",fontSize:"12px"}}>Add</button>
+                  </div>}
+                </div>
+                {inp("DATE IN","dateIn","date")}
+                {form.status==="OUT"&&inp("DATE OUT","dateOut","date")}
+              </div>
+            </>
+          )}
+
+          <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
+            <button onClick={handleSave}
+              style={{flex:1,background:blocked?"#450a0a":isOutMode?"linear-gradient(135deg,#7f1d1d,#991b1b)":"linear-gradient(135deg,#0284c7,#0369a1)",
+                color:blocked?"#fca5a5":"#fff",border:blocked?"2px solid #ef4444":"none",
+                borderRadius:"10px",padding:"13px",cursor:blocked?"not-allowed":"pointer",fontSize:"13px",fontWeight:"700"}}>
+              {blocked?"⛔ BLOCKED — Change Rack":isOutMode?"📤 ISSUE STOCK":isEdit?"💾 UPDATE":"💾 SAVE TO FIREBASE"}
+            </button>
+            <button onClick={onClose} style={{flex:1,background:"#1e293b",color:"#94a3b8",border:"1px solid #334155",borderRadius:"10px",padding:"13px",cursor:"pointer",fontSize:"13px"}}>CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── PDF IMPORT PANEL COMPONENT ────────────────────────────────────────────────
+function PDFImportPanel({chemicals,logs,onUpdate,onClose}){
+  const[step,setStep]=useState("upload"); // upload | preview | importing
+  const[matches,setMatches]=useState([]);
+  const[unmatched,setUnmatched]=useState([]);
+  const[importing,setImporting]=useState(false);
+  const[progress,setProgress]=useState(0);
+
+  const handleFile=async(e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    setStep("parsing");
+    try{
+      const items=await parsePDFStock(file);
+      if(items.length===0){
+        alert("PDF থেকে কোনো ডাটা পাওয়া যায়নি। সঠিক format এর PDF দিন।");
+        setStep("upload");
+        return;
+      }
+      const matched=[];
+      const notMatched=[];
+      for(const item of items){
+        const chem=matchChemical(item.name,chemicals);
+        if(chem){
+          matched.push({chem,pdfName:item.name,closing:item.closing,opening:item.opening,totalReceive:item.totalReceive,totalIssue:item.totalIssue});
+        }else{
+          notMatched.push(item.name);
+        }
+      }
+      setMatches(matched);
+      setUnmatched(notMatched);
+      setStep("preview");
+    }catch(err){
+      alert("PDF পড়তে সমস্যা হয়েছে: "+err.message);
+      setStep("upload");
+    }
+  };
+
+  const handleImport=async()=>{
+    setImporting(true);
+    setStep("importing");
+    try{
+      await onUpdate(matches);
+    }catch(err){
+      alert("আপডেট করতে সমস্যা হয়েছে: "+err.message);
+    }
+    setImporting(false);
+  };
+
+  if(step==="upload"||step==="parsing")return(
+    <div>
+      <div style={{background:"#1e293b",borderRadius:"12px",padding:"20px",marginBottom:"16px",textAlign:"center"}}>
+        <div style={{fontSize:"40px",marginBottom:"12px"}}>📄</div>
+        <div style={{color:"#e2e8f0",fontWeight:"700",fontSize:"14px",marginBottom:"8px"}}>ERP PDF আপলোড করুন</div>
+        <div style={{color:"#64748b",fontSize:"11px",marginBottom:"16px"}}>যেকোনো নামের PDF চলবে — শুধু format একই হতে হবে</div>
+        <input type="file" accept=".pdf" onChange={handleFile}
+          style={{display:"none"}} id="pdfInput"/>
+        <label htmlFor="pdfInput" style={{background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",
+          borderRadius:"8px",padding:"12px 24px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>
+          {step==="parsing"?"⏳ পড়ছে...":"📂 PDF বাছাই করুন"}
+        </label>
+      </div>
+      <div style={{background:"#0f172a",borderRadius:"8px",padding:"12px",fontSize:"11px",color:"#64748b"}}>
+        💡 <b style={{color:"#94a3b8"}}>টিপস:</b> Chemical ও Dye দুটো আলাদা PDF একসাথে না দিয়ে একটা একটা করে আপলোড করুন।
+      </div>
+    </div>
+  );
+
+  if(step==="preview")return(
+    <div>
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
+        <div style={{flex:1,background:"#14532d33",border:"1px solid #4ade8044",borderRadius:"10px",padding:"12px",textAlign:"center"}}>
+          <div style={{color:"#4ade80",fontWeight:"900",fontSize:"22px"}}>{matches.length}</div>
+          <div style={{color:"#4ade80",fontSize:"11px"}}>Match হয়েছে</div>
+        </div>
+        <div style={{flex:1,background:"#7f1d1d33",border:"1px solid #ef444444",borderRadius:"10px",padding:"12px",textAlign:"center"}}>
+          <div style={{color:"#f87171",fontWeight:"900",fontSize:"22px"}}>{unmatched.length}</div>
+          <div style={{color:"#f87171",fontSize:"11px"}}>Match হয়নি</div>
+        </div>
+      </div>
+
+      <div style={{maxHeight:"300px",overflowY:"auto",marginBottom:"16px"}}>
+        {matches.map((m,i)=>(
+          <div key={i} style={{background:"#1e293b",borderRadius:"8px",padding:"10px 12px",marginBottom:"6px",
+            display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{color:"#e2e8f0",fontSize:"12px",fontWeight:"700"}}>{m.chem.name}</div>
+              <div style={{color:"#64748b",fontSize:"10px"}}>PDF: {m.pdfName}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:"#fbbf24",fontWeight:"900",fontSize:"13px"}}>{m.closing} kg</div>
+              <div style={{color:"#64748b",fontSize:"9px"}}>Closing</div>
+            </div>
+          </div>
+        ))}
+        {unmatched.length>0&&(
+          <div style={{background:"#7f1d1d22",border:"1px solid #ef444433",borderRadius:"8px",padding:"12px",marginTop:"8px"}}>
+            <div style={{color:"#f87171",fontWeight:"700",fontSize:"12px",marginBottom:"8px"}}>⚠️ Match হয়নি ({unmatched.length}টি):</div>
+            {unmatched.map((n,i)=>(
+              <div key={i} style={{color:"#94a3b8",fontSize:"11px",marginBottom:"4px"}}>• {n}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{display:"flex",gap:"10px"}}>
+        <button onClick={()=>setStep("upload")}
+          style={{flex:1,padding:"12px",borderRadius:"8px",border:"1px solid #334155",
+            background:"#1e293b",color:"#94a3b8",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>
+          ← ফিরে যান
+        </button>
+        <button onClick={handleImport} disabled={matches.length===0}
+          style={{flex:2,padding:"12px",borderRadius:"8px",border:"none",
+            background:matches.length>0?"linear-gradient(135deg,#7c3aed,#6d28d9)":"#334155",
+            color:"#fff",cursor:matches.length>0?"pointer":"not-allowed",fontSize:"13px",fontWeight:"700"}}>
+          ✅ {matches.length}টি আইটেম আপডেট করুন
+        </button>
+      </div>
+    </div>
+  );
+
+  if(step==="importing")return(
+    <div style={{textAlign:"center",padding:"30px"}}>
+      <div style={{fontSize:"40px",marginBottom:"16px"}}>⏳</div>
+      <div style={{color:"#a78bfa",fontWeight:"700",fontSize:"14px"}}>আপডেট হচ্ছে...</div>
+      <div style={{color:"#64748b",fontSize:"12px",marginTop:"8px"}}>একটু অপেক্ষা করুন</div>
+    </div>
+  );
+
+  return null;
+}
+
+// ── PDF IMPORT ────────────────────────────────────────────────────────────────
+async function loadPDFJS(){
+  if(window.pdfjsLib)return window.pdfjsLib;
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      resolve(window.pdfjsLib);
+    };
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function parsePDFStock(file){
+  const pdfjsLib=await loadPDFJS();
+  const arrayBuffer=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  let fullText="";
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    const pageText=tc.items.map(item=>item.str).join(" ");
+    fullText+=pageText+" ";
+  }
+
+  // Parse by getting all text items per page with positions
+  const items=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    // Group text items by their Y position (same line = same Y)
+    const lineMap={};
+    for(const item of tc.items){
+      if(!item.str.trim())continue;
+      const y=Math.round(item.transform[5]);
+      if(!lineMap[y])lineMap[y]=[];
+      lineMap[y].push({x:item.transform[4],text:item.str.trim()});
+    }
+    // Sort lines by Y descending (top to bottom)
+    const ys=Object.keys(lineMap).map(Number).sort((a,b)=>b-a);
+    const lines=ys.map(y=>lineMap[y].sort((a,b)=>a.x-b.x).map(t=>t.text).join(" "));
+
+    // Now parse lines - look for lines with 5 numbers at the end
+    const numRe=/^(\d{1,3})\s+(.+?)\s+(None|\w+)\s+Kg\.?\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)$/;
+    // Also handle split lines where name is on previous line
+    const numOnlyRe=/^(\d{1,3})\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)\s+([\d,]+\.\d+)$/;
+
+    let pendingName="";
+    for(let li=0;li<lines.length;li++){
+      const line=lines[li].trim();
+      // Full row match
+      let m=line.match(numRe);
+      if(m){
+        const name=m[2].replace(/\s+/g," ").trim();
+        const closing=parseFloat(m[8].replace(/,/g,""));
+        const opening=parseFloat(m[4].replace(/,/g,""));
+        const totalIssue=parseFloat(m[7].replace(/,/g,""));
+        if(!isNaN(closing))items.push({name,opening,totalIssue,closing});
+        pendingName="";
+        continue;
+      }
+      // Number-only row (name was on previous line)
+      m=line.match(numOnlyRe);
+      if(m&&pendingName){
+        const closing=parseFloat(m[6].replace(/,/g,""));
+        const opening=parseFloat(m[2].replace(/,/g,""));
+        const totalIssue=parseFloat(m[5].replace(/,/g,""));
+        if(!isNaN(closing))items.push({name:pendingName,opening,totalIssue,closing});
+        pendingName="";
+        continue;
+      }
+      // Check if this looks like a name continuation line
+      if(/^[A-Za-z(]/.test(line)&&!/^(Product|Name|Unit|Item|Page|Opening|Tilargati|Concept|Grand|SL)/.test(line)){
+        pendingName=pendingName?pendingName+" "+line:line;
+      } else {
+        pendingName="";
+      }
+    }
+  }
+  return items;
+}
+
+function normalizeName(n){
+  return (n||"").toLowerCase()
+    .replace(/[()\-\.]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function matchChemical(pdfName,chemicals){
+  const pdfNorm=normalizeName(pdfName);
+  // Exact match first
+  let found=chemicals.find(c=>normalizeName(c.name)===pdfNorm);
+  if(found)return found;
+  // Partial match - pdf name contains chem name or vice versa
+  found=chemicals.find(c=>{
+    const cNorm=normalizeName(c.name);
+    return pdfNorm.includes(cNorm)||cNorm.includes(pdfNorm);
+  });
+  return found||null;
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const[tab,setTab]=useState("home");
+  const[chemicals,setChemicals]=useState([]);
+  const[logs,setLogs]=useState([]);
+  const[racks,setRacks]=useState(mkRacks(["A","B","C","D","E"]));
+  const[selectedRack,setSelectedRack]=useState(null);
+  const[modal,setModal]=useState(null);
+  const[loading,setLoading]=useState(true);
+  const[saving,setSaving]=useState(false);
+  const[dbStatus,setDbStatus]=useState("connecting");
+  const[tgModal,setTgModal]=useState(false);
+  const[alertSent,setAlertSent]=useState(null);
+  const[theme,setTheme]=useState(()=>localStorage.getItem("chemstore_theme")||"dark");
+  const[pdfModal,setPdfModal]=useState(false);
+  const[pdfResult,setPdfResult]=useState(null);
+  const[lang,setLang]=useState(()=>localStorage.getItem("chemstore_lang")||"bn");
+  const T={
+    bn:{warehouse:"🏭 গুদাম",stock:"📋 স্টক লেজার",log:"📜 IN/OUT লগ",production:"🧪 উৎপাদন",
+        compat:"⚠️ সামঞ্জস্যতা",alerts:"🔴 সতর্কতা",settings:"⚙️ সেটিংস",
+        add:"➕ যোগ করুন",alertOn:"🤖 Alert ON",alertOff:"🤖 Alert",
+        totalStock:"মোট স্টক",lowStock2:"কম স্টক",expiring:"মেয়াদ শেষ",valueBdt:"মূল্য BDT",valueUsd:"মূল্য USD",totalLogs:"মোট লগ"},
+    en:{warehouse:"🏭 Warehouse",stock:"📋 Stock Ledger",log:"📜 IN/OUT Log",production:"🧪 Production",
+        compat:"⚠️ Compatibility",alerts:"🔴 Alerts",settings:"⚙️ Settings",
+        add:"➕ Add",alertOn:"🤖 Alert ON",alertOff:"🤖 Alert",
+        totalStock:"Total Stock",lowStock2:"Low Stock",expiring:"Expiring",valueBdt:"Value BDT",valueUsd:"Value USD",totalLogs:"Total Logs"},
+  };
+  const tx=T[lang];
+  const isDark=theme==="dark";
+  React.useEffect(()=>{
+    document.body.style.background=isDark?"#020c1b":"#f0f4f8";
+    document.body.style.color=isDark?"#e2e8f0":"#1a202c";
+    localStorage.setItem("chemstore_theme",theme);
+    if(isDark){
+      document.body.classList.remove("light-theme");
+    } else {
+      document.body.classList.add("light-theme");
+    }
+  },[theme]);
+  React.useEffect(()=>{localStorage.setItem("chemstore_lang",lang);},[lang]);
+
+  const loadData=useCallback(async()=>{
+    try{
+      setDbStatus("connecting");
+      const[chems,lg]=await Promise.all([fsGet("chemicals"),fsGet("logs")]);
+      setChemicals(chems);
+      setLogs(lg.sort((a,b)=>(a.date||"").localeCompare(b.date||"")));
+      setDbStatus("online");
+    }catch(e){console.error(e);setDbStatus("offline");}
+    finally{setLoading(false);}
+  },[]);
+
+  useEffect(()=>{loadData();},[loadData]);
+
+  // ── SAVE CHEMICAL (CREATE or UPDATE) ──────────────────────────────────────
+  const saveChemical=async(form)=>{
+    setSaving(true);
+    try{
+      const docId=form.docId||null;
+      const data={};
+      for(const[k,v]of Object.entries(form)){
+        if(k==="docId"||k==="_outMode"||k==="outAmount"||k==="outNote")continue;
+        data[k]=v;
+      }
+      if(docId){
+        // ── UPDATE existing document ──
+        await fsUpdate("chemicals",docId,data);
+        setChemicals(p=>p.map(c=>c.docId===docId?{...data,docId}:c));
+      }else{
+        // ── CREATE new document ──
+        const res=await fsAdd("chemicals",data);
+        const nd=fromDoc(res);
+        if(nd)setChemicals(p=>[...p,nd]);
+      }
+    }catch(err){alert("❌ Save failed: "+err.message);}
+    setSaving(false);
+  };
+
+  // ── ADD LOG & UPDATE AMOUNT ───────────────────────────────────────────────
+  const addLog=async(entry)=>{
+    try{
+      const{docId,...logData}=entry;
+      const res=await fsAdd("logs",logData);
+      const nd=fromDoc(res);
+      const newLogs=[...logs,nd||logData].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+      setLogs(newLogs);
+      // Update chemical amount to closing balance
+      const chem=chemicals.find(c=>String(c.id)===String(entry.chemId));
+      if(chem?.docId){
+        const{closing}=buildLedger(chem,newLogs);
+        await fsUpdate("chemicals",chem.docId,{amount:closing});
+        setChemicals(p=>p.map(c=>c.docId===chem.docId?{...c,amount:closing}:c));
+
+        // ── TELEGRAM AUTO ALERT ──
+        if(closing<=Number(chem.lowStockThreshold||0)){
+          const cfg=getTgConfig();
+          if(cfg.token&&cfg.chatId){
+            const result=await sendTelegramAlert([{
+              name:chem.name,code:chem.code,
+              closing:parseFloat(closing.toFixed(3)),unit:chem.unit,
+              threshold:chem.lowStockThreshold,rack:chem.rack
+            }]);
+            setAlertSent(result.ok?"✅ Telegram অ্যালার্ট পাঠানো হয়েছে!":"⚠️ অ্যালার্ট পাঠাতে ব্যর্থ");
+            setTimeout(()=>setAlertSent(null),4000);
+          }
+        }
+      }
+    }catch(e){console.error("Log error:",e);}
+  };
+
+  // ── DELETE LOG ────────────────────────────────────────────────────────────
+  const deleteLog=async(log)=>{
+    try{
+      if(log.docId)await fsDelete("logs",log.docId);
+      const newLogs=logs.filter(l=>(l.docId||l.id)!==(log.docId||log.id));
+      setLogs(newLogs);
+      const chem=chemicals.find(c=>String(c.id)===String(log.chemId));
+      if(chem?.docId){
+        const{closing}=buildLedger(chem,newLogs);
+        await fsUpdate("chemicals",chem.docId,{amount:closing});
+        setChemicals(p=>p.map(c=>c.docId===chem.docId?{...c,amount:closing}:c));
+      }
+    }catch(e){alert("Delete error: "+e.message);}
+  };
+
+  // ── PRODUCTION ISSUE ──────────────────────────────────────────────────────
+  const productionIssue=async(chem,amountKg,batchNo)=>{
+    const today=new Date().toISOString().split("T")[0];
+    await addLog({id:genId(),date:today,chemId:chem.id,chemCode:chem.code,chemName:chem.name,
+      action:"OUT",amount:amountKg,unit:"kg",containerCount:0,lotNo:chem.lotNo||"",
+      note:`Production: ${batchNo}`,by:"Production",pricePerUnit:chem.pricePerUnit});
+  };
+
+  const addRack=async(r)=>{if(!racks.includes(r)){setRacks(p=>[...p,r].sort());try{await fsAdd("racks",{name:r});}catch(e){}}};
+
+  const lowStock=chemicals.filter(c=>{const{closing}=buildLedger(c,logs);return c.status==="IN"&&closing<=c.lowStockThreshold;});
+
+  const TABS=[
+    {id:"home",label:lang==="bn"?"🏠 হোম":"🏠 Home"},
+    {id:"warehouse",label:tx.warehouse},
+    {id:"stock",label:tx.stock},
+    {id:"log",label:tx.log},
+    {id:"production",label:tx.production},
+    {id:"compat",label:tx.compat},
+    {id:"alerts",label:tx.alerts+(lowStock.length?` (${lowStock.length})`:"")},
+    {id:"settings",label:tx.settings},
+  ];
+
+  if(loading)return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#020c1b,#0a1628,#0f2440)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"0",overflow:"hidden",position:"relative"}}>
+      <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(#1e3a5f22 1px,transparent 1px),linear-gradient(90deg,#1e3a5f22 1px,transparent 1px)",backgroundSize:"40px 40px"}}/>
+      <div style={{animation:"floatUp 3s ease-in-out infinite",marginBottom:"28px",zIndex:1}}>
+        <svg width="300" height="200" viewBox="0 0 300 200" fill="none">
+          <rect x="30" y="50" width="240" height="120" rx="4" fill="#0a1628" stroke="#1e3a5f" strokeWidth="1.5"/>
+          <rect x="45" y="60" width="65" height="100" rx="3" fill="#1e293b" stroke="#334155"/>
+          {[85,103,121,139].map((y,i)=><rect key={i} x="48" y={y} width="59" height="12" rx="2" fill={["#0284c7","#7c3aed","#059669","#d97706"][i]} opacity="0.7"/>)}
+          <rect x="120" y="60" width="65" height="100" rx="3" fill="#1e293b" stroke="#334155"/>
+          {[85,103,121,139].map((y,i)=><rect key={i} x="123" y={y} width="59" height="12" rx="2" fill={["#ef4444","#f97316","#0284c7","#7c3aed"][i]} opacity="0.7"/>)}
+          <rect x="195" y="60" width="65" height="100" rx="3" fill="#1e293b" stroke="#334155"/>
+          {[85,103,121].map((y,i)=><rect key={i} x="198" y={y} width="59" height="12" rx="2" fill={["#059669","#d97706","#ef4444"][i]} opacity="0.7"/>)}
+          <ellipse cx="75" cy="178" rx="14" ry="7" fill="#1e40af"/><rect x="61" y="163" width="28" height="15" rx="2" fill="#1d4ed8"/><ellipse cx="75" cy="163" rx="14" ry="7" fill="#3b82f6"/>
+          <ellipse cx="108" cy="178" rx="14" ry="7" fill="#1e40af"/><rect x="94" y="163" width="28" height="15" rx="2" fill="#1d4ed8"/><ellipse cx="108" cy="163" rx="14" ry="7" fill="#3b82f6"/>
+          <rect x="195" y="155" width="40" height="25" rx="3" fill="#dc2626"/>
+          <circle cx="205" cy="183" r="7" fill="#374151" stroke="#6b7280" strokeWidth="1.5"/>
+          <circle cx="227" cy="183" r="7" fill="#374151" stroke="#6b7280" strokeWidth="1.5"/>
+          <text x="20" y="40" fontSize="14" opacity="0.5">💥</text><text x="65" y="28" fontSize="13" opacity="0.4">🔥</text>
+          <text x="130" y="22" fontSize="14" opacity="0.5">⚗️</text><text x="190" y="28" fontSize="13" opacity="0.4">☠️</text><text x="248" y="40" fontSize="14" opacity="0.5">⚠️</text>
+        </svg>
+      </div>
+      <div style={{zIndex:1,textAlign:"center",animation:"fadeIn .8s ease"}}>
+        <div style={{fontSize:"30px",fontWeight:"900",color:"#38bdf8",letterSpacing:"4px",textShadow:"0 0 30px #38bdf888"}}>⚗️ ChemStore Pro</div>
+        <div style={{fontSize:"11px",color:"#475569",marginTop:"4px",letterSpacing:"2px"}}>v3.0 · SMART CHEMICAL WMS</div>
+        <div style={{width:"260px",height:"3px",background:"#1e293b",borderRadius:"2px",margin:"18px auto 10px",overflow:"hidden"}}>
+          <div style={{height:"100%",background:"linear-gradient(90deg,#38bdf8,#7c3aed,#38bdf8)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",borderRadius:"2px"}}/>
+        </div>
+        <div style={{color:"#334155",fontSize:"10px",animation:"pulse 1.5s infinite"}}>🔥 Connecting to Firebase Firestore...</div>
+      </div>
+      <div style={{position:"absolute",bottom:"20px",textAlign:"center",zIndex:1,animation:"fadeIn 1s ease .5s both"}}>
+        <div style={{color:"#1e3a5f",fontSize:"9px",letterSpacing:"1px",marginBottom:"3px"}}>DEVELOPED BY</div>
+        <div style={{color:"#38bdf8",fontSize:"13px",fontWeight:"700"}}>👨‍💻 Md Khairul Islam</div>
+        <a href="https://wa.me/8801927999251" style={{color:"#25D366",fontSize:"11px",textDecoration:"none",display:"block",marginTop:"2px"}}>📱 +8801927999251</a>
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={{minHeight:"100vh",background:isDark?"#020c1b":"#f0f4f8",color:isDark?"#e2e8f0":"#1a202c",transition:"background .3s,color .3s"}}>
+      {/* HEADER */}
+      <div style={{background:"linear-gradient(135deg,#0a1628,#0f2440)",borderBottom:"1px solid #1e3a5f",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"10px"}}>
+        <div>
+          <div style={{fontSize:"18px",fontWeight:"800",color:"#38bdf8",letterSpacing:"2px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
+            ⚗️ ChemStore Pro
+            <span style={{fontSize:"9px",background:"#38bdf833",color:"#38bdf8",borderRadius:"4px",padding:"2px 7px"}}>v3.0</span>
+            <span style={{fontSize:"9px",background:dbStatus==="online"?"#14532d":dbStatus==="offline"?"#7f1d1d":"#1e3a5f",
+              color:dbStatus==="online"?"#4ade80":dbStatus==="offline"?"#f87171":"#38bdf8",borderRadius:"4px",padding:"2px 7px"}}>
+              {dbStatus==="online"?"🟢 Online":dbStatus==="offline"?"🔴 Offline":"🟡 Connecting..."}
+            </span>
+            {saving&&<span style={{fontSize:"9px",color:"#fbbf24",animation:"pulse 1s infinite"}}>💾 Saving...</span>}
+          </div>
+          <div style={{fontSize:"9px",color:"#475569",marginTop:"1px",letterSpacing:"1px"}}>Smart Chemical Warehouse Management · {chemicals.length} records</div>
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
+          {lowStock.length>0&&<div style={{background:"#7f1d1d44",border:"1px solid #ef444466",borderRadius:"7px",padding:"6px 12px",color:"#f87171",fontSize:"13px",fontWeight:"700",animation:"pulse 2s infinite"}}>🔴 {lowStock.length} {lang==="bn"?"কম":"Low"}</div>}
+          <button onClick={()=>setModal({})} className="btn-hover"
+            style={{background:"linear-gradient(135deg,#0284c7,#0369a1)",color:"#fff",border:"none",borderRadius:"8px",padding:"9px 16px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}>➕ {tx.add.replace("➕ ","")}</button>
+          <button onClick={()=>setPdfModal(true)} className="btn-hover"
+            style={{background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",border:"none",borderRadius:"8px",padding:"9px 12px",cursor:"pointer",fontSize:"13px",fontWeight:"700"}}
+            title="PDF থেকে স্টক আপডেট">📄 PDF</button>
+          <button onClick={loadData} className="btn-hover"
+            style={{background:"#1e293b",color:"#94a3b8",border:"1px solid #334155",borderRadius:"8px",padding:"9px 12px",cursor:"pointer",fontSize:"11px"}}>🔄</button>
+
+        </div>
+      </div>
+
+      {/* SAFETY BAR */}
+      <SafetyBar chemicals={chemicals} racks={racks}/>
+
+      {/* DASHBOARD */}
+      <DashCards chemicals={chemicals} logs={logs} onTabChange={setTab}/>
+      <Ticker logs={logs} chemicals={chemicals}/>
+
+      {/* TABS */}
+      <div style={{display:"flex",padding:"0 20px",borderBottom:isDark?"1px solid #1e293b":"1px solid #cbd5e1",overflowX:"auto",background:isDark?"#020c1b":"#f8fafc"}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{padding:"10px 14px",border:"none",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",background:"transparent",
+              color:tab===t.id?"#38bdf8":"#64748b",borderBottom:tab===t.id?"2px solid #38bdf8":"2px solid transparent",transition:"all .15s",fontWeight:tab===t.id?"700":"400",fontSize:"13px"}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* HOME TAB */}
+      {tab==="home"&&(
+        <div style={{minHeight:"80vh",background:isDark?"linear-gradient(160deg,#020c1b 0%,#0a1628 40%,#0d2137 100%)":"linear-gradient(160deg,#e0f7f4 0%,#b2ebf2 40%,#80deea 100%)",position:"relative",overflow:"hidden",padding:"0 0 40px 0"}}>
+          {/* Curved background shapes */}
+          <div style={{position:"absolute",top:"-80px",right:"-80px",width:"350px",height:"350px",borderRadius:"50%",background:isDark?"rgba(20,184,166,0.08)":"rgba(0,150,136,0.15)",zIndex:0}}/>
+          <div style={{position:"absolute",bottom:"-60px",left:"-60px",width:"280px",height:"280px",borderRadius:"50%",background:isDark?"rgba(20,184,166,0.06)":"rgba(0,150,136,0.12)",zIndex:0}}/>
+          <div style={{position:"absolute",top:"40%",left:"30%",width:"200px",height:"200px",borderRadius:"50%",background:isDark?"rgba(56,189,248,0.04)":"rgba(0,188,212,0.1)",zIndex:0}}/>
+
+          {/* Title */}
+          <div style={{textAlign:"center",padding:"30px 20px 20px",position:"relative",zIndex:1}}>
+            <div style={{fontSize:"28px",fontWeight:"900",color:isDark?"#38bdf8":"#00796b",letterSpacing:"2px"}}>⚗️ ChemStore Pro</div>
+            <div style={{fontSize:"12px",color:isDark?"#64748b":"#00897b",marginTop:"4px"}}>Smart Chemical Warehouse Management</div>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"16px",padding:"10px 20px",position:"relative",zIndex:1}}>
+            {[
+              {id:"warehouse",icon:"🏭",label:lang==="bn"?"গুদাম":"Warehouse",color:"#0284c7",bg:isDark?"#0c2340":"#e3f2fd"},
+              {id:"stock",icon:"📋",label:lang==="bn"?"স্টক লেজার":"Stock Ledger",color:"#7c3aed",bg:isDark?"#1a0a40":"#ede7f6"},
+              {id:"log",icon:"📜",label:lang==="bn"?"IN/OUT লগ":"IN/OUT Log",color:"#059669",bg:isDark?"#052e16":"#e8f5e9"},
+              {id:"production",icon:"🧪",label:lang==="bn"?"উৎপাদন":"Production",color:"#d97706",bg:isDark?"#2d1a00":"#fff8e1"},
+              {id:"compat",icon:"⚠️",label:lang==="bn"?"সামঞ্জস্যতা":"Compatibility",color:"#dc2626",bg:isDark?"#2d0a0a":"#ffebee"},
+              {id:"alerts",icon:"🔴",label:lang==="bn"?`সতর্কতা${lowStock.length?` (${lowStock.length})`:""}`:
+                `Alerts${lowStock.length?` (${lowStock.length})`:""}`,color:"#ef4444",bg:isDark?"#2d0a0a":"#ffebee"},
+              {id:"settings",icon:"⚙️",label:lang==="bn"?"সেটিংস":"Settings",color:"#64748b",bg:isDark?"#1e293b":"#f1f5f9"},
+            ].map(card=>(
+              <div key={card.id} onClick={()=>setTab(card.id)}
+                style={{background:isDark?card.bg:"#fff",borderRadius:"16px",padding:"20px 10px",
+                  textAlign:"center",cursor:"pointer",
+                  boxShadow:isDark?"0 4px 20px rgba(0,0,0,0.4)":"0 4px 20px rgba(0,0,0,0.1)",
+                  border:`1px solid ${card.color}33`,
+                  transition:"transform .2s,box-shadow .2s",
+                  display:"flex",flexDirection:"column",alignItems:"center",gap:"10px"}}
+                onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.05)";e.currentTarget.style.boxShadow=`0 8px 30px ${card.color}44`;}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow=isDark?"0 4px 20px rgba(0,0,0,0.4)":"0 4px 20px rgba(0,0,0,0.1)";}}>
+                <div style={{width:"56px",height:"56px",borderRadius:"50%",background:`${card.color}22`,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:"26px",
+                  border:`2px solid ${card.color}44`}}>
+                  {card.icon}
+                </div>
+                <div style={{fontSize:"11px",fontWeight:"700",color:isDark?"#e2e8f0":"#1a202c",lineHeight:"1.3",textAlign:"center"}}>
+                  {card.label}
+                </div>
+                {card.id==="alerts"&&lowStock.length>0&&(
+                  <div style={{background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"2px 8px",fontSize:"10px",fontWeight:"700"}}>
+                    {lowStock.length} Low
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Stats Row */}
+          <div style={{display:"flex",gap:"10px",padding:"16px 20px 0",position:"relative",zIndex:1}}>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#1e3a5f":"#b2dfdb"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#38bdf8"}}>{chemicals.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#00796b"}}>{lang==="bn"?"মোট আইটেম":"Total Items"}</div>
+            </div>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#7f1d1d":"#ffcdd2"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#ef4444"}}>{lowStock.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#c62828"}}>{lang==="bn"?"কম স্টক":"Low Stock"}</div>
+            </div>
+            <div style={{flex:1,background:isDark?"#0a1628aa":"#ffffffaa",backdropFilter:"blur(10px)",borderRadius:"12px",padding:"12px",textAlign:"center",border:`1px solid ${isDark?"#1e3a5f":"#b2dfdb"}`}}>
+              <div style={{fontSize:"20px",fontWeight:"900",color:"#4ade80"}}>{logs.length}</div>
+              <div style={{fontSize:"10px",color:isDark?"#64748b":"#00796b"}}>{lang==="bn"?"মোট লগ":"Total Logs"}</div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{textAlign:"center",padding:"24px 20px 0",position:"relative",zIndex:1}}>
+            <div style={{fontSize:"10px",color:isDark?"#334155":"#00897b"}}>👨‍💻 Developed by Md Khairul Islam</div>
+            <a href="https://wa.me/8801927999251" style={{color:"#25D366",fontSize:"10px",textDecoration:"none"}}>📱 +8801927999251</a>
+          </div>
+        </div>
+      )}
+
+      {/* WAREHOUSE TAB */}
+      {tab==="warehouse"&&(
+        <div>
+          <WarehouseGrid chemicals={chemicals} racks={racks} logs={logs} onSelectRack={setSelectedRack} selectedRack={selectedRack}/>
+          {selectedRack&&(()=>{
+            const rackChems=chemicals.filter(c=>c.rack===selectedRack&&c.status==="IN");
+            return(
+              <div style={{margin:"10px 20px",background:"linear-gradient(135deg,#1e293b,#0f172a)",borderRadius:"12px",padding:"14px 16px",border:"1px solid #1e3a5f",animation:"fadeIn .3s ease"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
+                  <div style={{color:"#38bdf8",fontWeight:"700",fontSize:"14px"}}>🏭 Rack {selectedRack} — {rackChems.length} item{rackChems.length!==1?"s":""}</div>
+                  <button onClick={()=>setSelectedRack(null)} style={{background:"#1e293b",color:"#94a3b8",border:"1px solid #334155",borderRadius:"5px",padding:"4px 10px",cursor:"pointer",fontSize:"11px"}}>✕</button>
+                </div>
+                {rackChems.length===0&&<div style={{color:"#475569",fontSize:"12px"}}>Empty rack</div>}
+                {rackChems.map(chem=>{
+                  const{opening,closing,currentWAC}=buildLedger(chem,logs);
+                  const haz=HAZARD_CLASSES[chem.hazardClass||"NONE"];
+                  const isLow=closing<=chem.lowStockThreshold;
+                  const sym=CURRENCIES.find(x=>x.v===chem.currency)?.sym||"৳";
+                  return(
+                    <div key={chem.docId} style={{background:"#0a1628",borderRadius:"9px",padding:"11px 13px",marginBottom:"7px",border:`1px solid ${haz.color}33`}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:"6px"}}>
+                        <div>
+                          <div style={{fontSize:"13px",fontWeight:"800",color:"#e2e8f0",display:"flex",alignItems:"center",gap:"6px"}}>
+                            {haz.icon} {chem.name} {isLow&&<span style={{color:"#ef4444",fontSize:"9px"}}>🔴 LOW</span>}
+                          </div>
+                          <div style={{fontSize:"9px",color:"#64748b",marginTop:"2px"}}>{chem.code} · {haz.label} · {chem.supplier||"—"}</div>
+                        </div>
+                        <div style={{display:"flex",gap:"5px"}}>
+                          <button onClick={()=>setModal({...chem})} className="btn-hover"
+                            style={{background:"#1e40af",color:"#bfdbfe",border:"none",borderRadius:"5px",padding:"5px 10px",cursor:"pointer",fontSize:"10px"}}>✏️ Edit</button>
+                          <button onClick={()=>setModal({...chem,_outMode:true})} className="btn-hover"
+                            style={{background:"#7f1d1d",color:"#fca5a5",border:"none",borderRadius:"5px",padding:"5px 10px",cursor:"pointer",fontSize:"10px"}}>📤 OUT</button>
+                        </div>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:"5px",marginTop:"9px"}}>
+                        {[["Opening",`${opening} ${chem.unit}`,"#22d3ee"],["Closing",`${parseFloat(closing.toFixed(3))} ${chem.unit}`,isLow?"#ef4444":"#fbbf24"],
+                          ["WAC",`${sym}${currentWAC.toFixed(2)}/${chem.unit}`,"#a78bfa"],["Value",fmtCur(closing*currentWAC,chem.currency),"#4ade80"],
+                          ["Exp",chem.expDate||"—","#94a3b8"],["Hazard",haz.short,haz.color]].map(([k,v,col])=>(
+                          <div key={k} style={{background:"#1e293b",borderRadius:"6px",padding:"7px 9px"}}>
+                            <div style={{fontSize:"8px",color:"#475569"}}>{k}</div>
+                            <div style={{fontSize:"11px",color:col||"#e2e8f0",fontWeight:"700",marginTop:"1px"}}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {tab==="stock"&&<StockLedger chemicals={chemicals} logs={logs} onEdit={setModal} onOut={c=>setModal({...c,_outMode:true})}/>}
+      {tab==="log"&&<LogTable logs={logs} onDelete={deleteLog}/>}
+      {tab==="production"&&<ProductionModule chemicals={chemicals} logs={logs} onIssue={productionIssue}/>}
+      {tab==="compat"&&<CompatChart chemicals={chemicals} racks={racks} logs={logs}/>}
+      {tab==="alerts"&&<AlertsPanel chemicals={chemicals} logs={logs}/>}
+      {tab==="settings"&&(
+        <div style={{padding:"20px",maxWidth:"480px",margin:"0 auto"}}>
+          <div style={{background:isDark?"#0a1628":"#fff",border:`1px solid ${isDark?"#1e3a5f":"#cbd5e1"}`,borderRadius:"14px",padding:"20px",marginBottom:"16px"}}>
+            <div style={{color:"#38bdf8",fontWeight:"800",fontSize:"16px",marginBottom:"16px"}}>🎨 {lang==="bn"?"থিম":"Theme"}</div>
+            <div style={{display:"flex",gap:"10px"}}>
+              {[["dark","🌙 "+(lang==="bn"?"ডার্ক":"Dark")],["light","☀️ "+(lang==="bn"?"লাইট":"Light")]].map(([v,l])=>(
+                <button key={v} onClick={()=>setTheme(v)}
+                  style={{flex:1,padding:"12px",borderRadius:"10px",border:`2px solid ${theme===v?"#38bdf8":"#334155"}`,
+                    background:theme===v?"#38bdf822":isDark?"#1e293b":"#f1f5f9",
+                    color:theme===v?"#38bdf8":isDark?"#94a3b8":"#64748b",cursor:"pointer",
+                    fontSize:"14px",fontWeight:"700",fontFamily:"'JetBrains Mono',monospace"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{background:isDark?"#0a1628":"#fff",border:`1px solid ${isDark?"#1e3a5f":"#cbd5e1"}`,borderRadius:"14px",padding:"20px",marginBottom:"16px"}}>
+            <div style={{color:"#38bdf8",fontWeight:"800",fontSize:"16px",marginBottom:"16px"}}>🌐 {lang==="bn"?"ভাষা":"Language"}</div>
+            <div style={{display:"flex",gap:"10px"}}>
+              {[["bn","🇧🇩 বাংলা"],["en","🇬🇧 English"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setLang(v)}
+                  style={{flex:1,padding:"12px",borderRadius:"10px",border:`2px solid ${lang===v?"#38bdf8":"#334155"}`,
+                    background:lang===v?"#38bdf822":isDark?"#1e293b":"#f1f5f9",
+                    color:lang===v?"#38bdf8":isDark?"#94a3b8":"#64748b",cursor:"pointer",
+                    fontSize:"14px",fontWeight:"700",fontFamily:"'JetBrains Mono',monospace"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{background:isDark?"#0a1628":"#fff",border:`1px solid ${isDark?"#1e3a5f":"#cbd5e1"}`,borderRadius:"14px",padding:"20px"}}>
+            <div style={{color:"#38bdf8",fontWeight:"800",fontSize:"16px",marginBottom:"16px"}}>🤖 {lang==="bn"?"টেলিগ্রাম অ্যালার্ট":"Telegram Alert"}</div>
+            <button onClick={()=>setTgModal(true)}
+              style={{width:"100%",padding:"13px",borderRadius:"10px",border:`1px solid ${getTgConfig().token?"#4ade8055":"#334155"}`,
+                background:getTgConfig().token?"#14532d33":isDark?"#1e293b":"#f1f5f9",
+                color:getTgConfig().token?"#4ade80":isDark?"#94a3b8":"#64748b",cursor:"pointer",
+                fontSize:"14px",fontWeight:"700",fontFamily:"'JetBrains Mono',monospace"}}>
+              {getTgConfig().token?(lang==="bn"?"✅ Alert চালু — সেটিং পরিবর্তন করুন":"✅ Alert ON — Change Settings"):(lang==="bn"?"⚙️ সেটআপ করুন":"⚙️ Setup")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <div style={{background:isDark?"#020c1b":"#f0f4f8",borderTop:isDark?"1px solid #1e293b":"1px solid #cbd5e1",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"6px",marginTop:"20px"}}>
+        <div style={{fontSize:"10px",color:"#334155"}}>⚗️ ChemStore Pro v3.0 · GHS/UN · WAC · Firebase Firestore</div>
+        <div style={{fontSize:"10px",color:"#475569",display:"flex",gap:"14px",flexWrap:"wrap"}}>
+          <span>👨‍💻 Md Khairul Islam</span>
+          <a href="https://wa.me/8801927999251" style={{color:"#25D366",textDecoration:"none"}}>📱 +8801927999251</a>
+        </div>
+      </div>
+
+      {modal!==null&&(
+        <ChemModal chem={modal} chemicals={chemicals} racks={racks} logs={logs}
+          onSave={saveChemical} onLog={addLog}
+          onClose={()=>setModal(null)} onAddRack={addRack}/>
+      )}
+      {tgModal&&<TelegramSettingsModal onClose={()=>setTgModal(false)}/>}
+      {pdfModal&&(
+        <div style={{position:"fixed",inset:0,background:"#000a",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div style={{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:"16px",padding:"24px",width:"100%",maxWidth:"480px",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+              <div style={{color:"#a78bfa",fontWeight:"800",fontSize:"16px"}}>📄 PDF থেকে স্টক আপডেট</div>
+              <button onClick={()=>{setPdfModal(false);setPdfResult(null);}} style={{background:"none",border:"none",color:"#94a3b8",fontSize:"20px",cursor:"pointer"}}>✕</button>
+            </div>
+            <PDFImportPanel
+              chemicals={chemicals}
+              logs={logs}
+              onUpdate={async(matches)=>{
+                // First fetch ALL fresh logs from Firebase
+                const allLogs=await fsGet("logs");
+                for(const m of matches){
+                  if(!m.chem.docId)continue;
+                  // Delete ALL existing logs for this chemical from Firebase
+                  const chemLogs=allLogs.filter(l=>String(l.chemId)===String(m.chem.id));
+                  for(const l of chemLogs){
+                    if(l.docId)await fsDelete("logs",l.docId);
+                  }
+                  // Set opening balance = PDF closing, no IN/OUT logs added
+                  await fsUpdate("chemicals",m.chem.docId,{openingBalance:m.closing});
+                }
+                // Reload data
+                const[chems,lg]=await Promise.all([fsGet("chemicals"),fsGet("logs")]);
+                setChemicals(chems);setLogs(lg);
+                // Send telegram alert for low stock items
+                const lowItems=matches.filter(m=>m.closing<=Number(m.chem.lowStockThreshold||0)&&m.closing>0);
+                if(lowItems.length>0){
+                  await sendTelegramAlert(lowItems.map(m=>({
+                    name:m.chem.name,code:m.chem.code||"",
+                    closing:parseFloat(m.closing.toFixed(3)),
+                    unit:m.chem.unit||"kg",
+                    threshold:m.chem.lowStockThreshold||0,
+                    rack:m.chem.rack||""
+                  })));
+                }
+                setPdfModal(false);setPdfResult(null);
+                alert(`✅ ${matches.length}টি আইটেম আপডেট হয়েছে!${lowItems.length>0?`\n⚠️ ${lowItems.length}টি Low Stock Alert পাঠানো হয়েছে`:""}`);
+              }}
+              onClose={()=>{setPdfModal(false);setPdfResult(null);}}
+            />
+          </div>
+        </div>
+      )}
+      {alertSent&&(
+        <div style={{position:"fixed",bottom:"24px",right:"24px",zIndex:2000,
+          background:alertSent.startsWith("✅")?"#14532d":"#7f1d1d",
+          border:`1px solid ${alertSent.startsWith("✅")?"#4ade80":"#ef4444"}`,
+          color:alertSent.startsWith("✅")?"#4ade80":"#f87171",
+          borderRadius:"10px",padding:"12px 18px",fontSize:"14px",fontWeight:"700",
+          boxShadow:"0 4px 20px #00000088",animation:"fadeIn .3s ease",fontFamily:"'JetBrains Mono',monospace"}}>
+          {alertSent}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
